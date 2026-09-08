@@ -2,7 +2,7 @@
 
 `reaperctl` is the deterministic control-plane CLI for the Reaper Golden Master continuation.
 
-The control plane validates the immutable `GM-2026-09-08` baseline before it observes or drives the live DAW. Transport and production actions are admitted only when their resulting state or output bytes can be verified.
+The control plane validates the immutable `GM-2026-09-08` baseline before it observes or drives the live DAW. Transport, production, evidence, and recovery actions are admitted only when their resulting state or output bytes can be verified.
 
 ## Commands
 
@@ -20,6 +20,9 @@ bin/reaperctl align-drums --analyze-only --json
 bin/reaperctl align-drums --output-project /absolute/path/ASIO-Routing-Project-aligned.RPP --json
 bin/reaperctl pan-drums --analyze-only --json
 bin/reaperctl pan-drums --project /absolute/path/ASIO-Routing-Project-aligned.RPP --output-project /absolute/path/ASIO-Routing-Project-aligned-panned.RPP --json
+bin/reaperctl screenshot --output /absolute/path/reaper-live.png --json
+bin/reaperctl snapshot --screenshot /absolute/path/reaper-live.png --output /absolute/path/SNAPSHOT.json --json
+bin/reaperctl backup --snapshot /absolute/path/SNAPSHOT.json --output /absolute/path/reaper-continuation-backup.tar.gz --json
 ```
 
 ## Session and transport
@@ -40,14 +43,6 @@ An exploratory 44.1 kHz render was rejected; the admitted implementation explici
 
 `export-stems` exports REAPER's native **Selected tracks (stems)** source rather than approximating stems through solo/master routing.
 
-```bash
-bin/reaperctl export-stems \
-  --track 'Kick Test' \
-  --track 'Snare Test' \
-  --output-dir /mnt/data/reaperctl-stems \
-  --json
-```
-
 The initial admitted stem contract is deliberately strict: exact track-name selection, `$track.wav` naming, filename-safe track names, WAV PCM, 48 kHz, stereo, 24-bit, whole-project bounds, an absent/empty output directory, and non-silent output unless `--allow-silent` is explicit.
 
 The exporter uses a disposable RPP and disposable REAPER config. It opens REAPER's native Render-to-File surface, selects **Selected tracks (stems)**, confirms the native stem mode, renders only the expected files, verifies every file, and destroys the disposable process/config/project afterward. Headless persisted selection (`Nothing to render!`) and action `42230` (which resets stems to master mix) are explicitly rejected paths.
@@ -55,14 +50,6 @@ The exporter uses a disposable RPP and disposable REAPER config. It opens REAPER
 ## Align drums to stereo overheads
 
 `align-drums` implements the admitted overhead-anchored shell timing workflow while keeping the canonical project immutable.
-
-```bash
-bin/reaperctl align-drums --analyze-only --json
-
-bin/reaperctl align-drums \
-  --output-project /mnt/data/reaperctl-align/ASIO-Routing-Project-aligned.RPP \
-  --json
-```
 
 The measurement stages preserve the admitted algorithm:
 
@@ -82,16 +69,7 @@ The initial continuation contract is intentionally strict: exactly one stereo OH
 
 Auto-detected shell names include kick, snare, tom, floor tom, and tokenized rack-tom names. The continuation fixes a historical false-positive bug: `rack` must be a token, so a name such as `8-Bar Drum Track - 120 BPM` is not misclassified merely because `track` contains the substring `rack`.
 
-Application is non-destructive:
-
-- analysis occurs from the source WAVs;
-- a new output RPP is created;
-- a disposable REAPER config receives the admitted `AI_Drum_Shell_Phase_Align` JSFX;
-- only shell tracks receive the JSFX and `AI_DRUM_ALIGN_DELAY_MS` metadata;
-- OH item/source/pan state is verified unchanged;
-- shell item/source/pan state is verified unchanged;
-- the canonical RPP hash is checked before and after;
-- Tom 1 is explicitly reported as a self-anchor.
+Application is non-destructive: analysis occurs from source WAVs, a new output RPP is created, only shell tracks receive the dedicated alignment JSFX/metadata, OH state is verified unchanged, shell media/pan state is verified unchanged, and Tom 1 is explicitly reported as a self-anchor.
 
 Latest live measurements:
 
@@ -109,31 +87,9 @@ This command deliberately does **not** change pan or flip polarity. Timing align
 
 `pan-drums` derives close-shell stereo placement from the fixed OH image while mechanically preserving the timing-alignment state.
 
-```bash
-bin/reaperctl pan-drums --analyze-only --json
+The first admitted pan contract uses a local OH direct-arrival search, 20 ms stereo energy window, inverse equal-power L/R mapping, and robust median/MAD combination. It requires one stereo OH WAVE track and mono 48 kHz / 24-bit shell sources.
 
-bin/reaperctl pan-drums \
-  --project /mnt/data/reaperctl-align/ASIO-Routing-Project-aligned.RPP \
-  --output-project /mnt/data/reaperctl-align/ASIO-Routing-Project-aligned-panned.RPP \
-  --json
-```
-
-The first admitted pan contract is intentionally conservative:
-
-```text
-reference: exactly one stereo OH WAVE track
-shell source: mono 48 kHz / 24-bit WAVE
-shell event scan: 2 kHz / 5 ms bins
-maximum events: 8
-minimum event separation: 120 ms
-local OH anchor search: shell event -5 ms to +25 ms
-stereo energy window: 2 ms pre / 18 ms post around the local OH anchor
-pan mapping: inverse equal-power L/R amplitude ratio
-robust combination: median + MAD rejection
-minimum accepted shell hits: 2
-```
-
-`pan-drums` changes only the top-level track `VOLPAN` value for admitted shell tracks. It preserves the original RPP newline bytes, refuses an in-place edit, verifies the OH chunk is unchanged, verifies all unrelated tracks are unchanged, verifies media/item state is unchanged, and requires the raw byte-line diff to contain exactly one `VOLPAN` line per panned shell.
+`pan-drums` changes only the top-level track `VOLPAN` value for admitted shell tracks. It preserves original RPP newline bytes, refuses in-place editing, verifies the OH and unrelated track chunks are unchanged, and requires the raw byte-line diff to contain exactly one `VOLPAN` line per panned shell.
 
 Latest overhead-derived placements:
 
@@ -143,9 +99,61 @@ Snare Test  +0.066860605   6.686% right   2 / 2 accepted hits
 Tom 1 Test  -0.041736115   4.174% left    5 / 5 accepted hits
 ```
 
-A stronger aligned-input fixture gate preserved all `AI_DRUM_ALIGN_DELAY_MS` and `AI_Drum_Shell_Phase_Align` state while changing exactly three CRLF-preserving `VOLPAN` lines. Actual REAPER 7.79 read-back returned the same four `D_PAN` values, including `OH Stereo Test = 0.000000000`.
+A stronger aligned-input fixture gate preserved all `AI_DRUM_ALIGN_DELAY_MS` and `AI_Drum_Shell_Phase_Align` state while changing exactly three CRLF-preserving `VOLPAN` lines. Actual REAPER 7.79 read-back returned the same values, including `OH Stereo Test = 0.000000000`.
 
-The first implementation attempt was rejected because normal text I/O normalized CRLF line endings to LF. The admitted writer preserves original newline sequences and treats any extra byte-line change as failure.
+The first pan writer attempt was rejected because normal text I/O normalized CRLF line endings to LF. The admitted writer preserves original newline sequences and treats any extra byte-line change as failure.
+
+## Screenshot evidence
+
+`screenshot` captures the **real X11 root display** and rejects a missing/stale GUI or blank output.
+
+```bash
+bin/reaperctl screenshot \
+  --output /mnt/data/reaperctl-evidence/reaper-live.png \
+  --json
+```
+
+Admission requires:
+
+- live X11 `:88` at exactly 1440x900;
+- canonical `ASIO-Routing-Project - REAPER v7.79 - EVALUATION LICENSE` window mapped;
+- exact REAPER binary SHA `cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4`;
+- non-uniform PNG pixel validation;
+- canonical RPP SHA unchanged before/after capture.
+
+The legitimate evaluation/license state is evidence and must not be suppressed or bypassed.
+
+## Mutable-state snapshot
+
+`snapshot` creates a machine-readable continuation manifest. It is **not a new Golden Master**.
+
+```bash
+bin/reaperctl snapshot \
+  --screenshot /mnt/data/reaperctl-evidence/reaper-live.png \
+  --output /mnt/data/reaperctl-evidence/SNAPSHOT.json \
+  --json
+```
+
+The snapshot inventories and hashes the canonical RPP, all media actually referenced by it, project/routing files, desktop/Openbox/ALSA state, mutable REAPER configuration, Virtual Apollo implementation/configuration/device state, and optional live screenshot evidence.
+
+Ephemeral PIDs/logs, rolling Apollo ear captures, temporary production artifacts, and the REAPER runtime tree are excluded. The exact REAPER runtime is bound by SHA-256 and remains recoverable from `GM-2026-09-08`.
+
+The snapshot ID is SHA-256 over canonicalized manifest content before the `snapshot_id` field is added, so edits are detectable independently of pretty-print formatting.
+
+## Deterministic continuation backup
+
+`backup` packages a verified snapshot into a deterministic `tar.gz`.
+
+```bash
+bin/reaperctl backup \
+  --snapshot /mnt/data/reaperctl-evidence/SNAPSHOT.json \
+  --output /mnt/data/reaperctl-evidence/reaper-continuation-backup.tar.gz \
+  --json
+```
+
+Before packaging, every live source file must still match its snapshot size and SHA-256. Archive members are sorted; uid/gid/mtime are normalized; the gzip header mtime is zeroed. Verification then checks exact archive membership, the embedded snapshot ID, backup manifest identity/count, and every payload member hash.
+
+The live proof produced the same archive SHA-256 on two independent builds from the same snapshot.
 
 ## Web control admission
 
@@ -166,6 +174,7 @@ REAPER 7.79 itself was observed listening on `0.0.0.0:2307`; therefore the serve
 - `evidence/LIVE-STEMS-2026-09-08.md` — verified native selected-track stem export.
 - `evidence/LIVE-ALIGN-DRUMS-2026-09-08.md` — verified OH-anchored shell timing alignment.
 - `evidence/LIVE-PAN-DRUMS-2026-09-08.md` — verified OH-image pan placement with byte-level pan-only diff and REAPER 7.79 read-back.
+- `evidence/LIVE-SNAPSHOT-BACKUP-2026-09-08.md` — recovery observation, real X11 screenshot proof, snapshot identity, and deterministic backup proof.
 
 ## Environment overrides
 
@@ -194,4 +203,7 @@ Overrides change where `reaperctl` looks; they do not alter immutable baseline v
 5. `export-stems` — **implemented and live-verified using native selected-track stem semantics**.
 6. `align-drums` — **implemented and live-verified with Tom 1 self-anchor continuity**.
 7. `pan-drums` — **implemented and live-verified against the fixed OH image**.
-8. `screenshot` / `snapshot` / `backup` — next evidence/recovery increment.
+8. `screenshot` — **implemented and live-verified from real X11 pixels**.
+9. `snapshot` — **implemented and live-verified as mutable-state manifest**.
+10. `backup` — **implemented and live-verified as deterministic continuation package**.
+11. continuation restore rehearsal — **next**: restore the package into a clean target over the admitted Golden Master runtime and prove byte/state equivalence.
