@@ -1,6 +1,6 @@
 # Continuation Status
 
-Current state: **active development — transport, master render, and native stem export live-verified**
+Current state: **active development — transport, render, stems, and overhead-anchored drum timing alignment live-verified**
 
 ```text
 Repository: taylorfrey529-ai/reaper-golden-master
@@ -18,47 +18,53 @@ Live-verified continuation capabilities:
 - reproducible Web-control admission;
 - state-confirmed `play` / `stop`;
 - verified 48 kHz stereo 24-bit master `render`;
-- native **Selected tracks (stems)** export through a disposable REAPER instance/config/project;
-- exact output-file set, format, non-silence and SHA-256 verification;
+- native selected-track stem export with exact per-file verification;
+- overhead-anchored shell timing alignment on a disposable output RPP;
+- Tom 1 self-anchor continuity;
 - canonical project byte-preservation before/after production actions.
 
-## Latest master render
+## Latest drum-alignment gate
 
 ```text
-SHA-256: 44ef543f74070a04b65690487ba0bb65638be0926c43935a8a4f3548f09041cd
-PCM WAV: 24-bit / stereo / 48000 Hz
-frames: 768000
-duration: 16.000000 s
+OH reference: OH Stereo Test
+
+Kick Test
+  offset: +0.000000 ms
+  accepted hits: 4 / 4
+  dominant OH channel: L/1
+  average score: 0.999262
+
+Snare Test
+  offset: +0.302083 ms
+  accepted hits: 2 / 2
+  local matches: +0.000000 ms (OH L/1), +0.604167 ms (OH R/2)
+  robust median: +0.302083 ms
+
+Tom 1 Test
+  offset: +0.000000 ms
+  accepted hits: 5 / 5
+  dominant OH channel: L/1
+  average score: 0.999800
+  self-anchor: yes
 ```
 
-## Latest native stem export
+Aligned disposable project:
 
 ```text
-Kick Test.wav
-  bytes: 4608690
-  SHA-256: ed938c8d8eb345e9ef595980108f3365c7375b969f88b1dfbc927f6ace1bce20
-  PCM WAV: 24-bit / stereo / 48000 Hz
-  frames: 768000
-  duration: 16.000000 s
-  non-silent: yes
-
-Snare Test.wav
-  bytes: 4608690
-  SHA-256: 55c1174f90f45553ab61ca22642bb7adf4c598d648beaeb42c4598aac8fe1ade
-  PCM WAV: 24-bit / stereo / 48000 Hz
-  frames: 768000
-  duration: 16.000000 s
-  non-silent: yes
+/mnt/data/reaperctl-align-live/ASIO-Routing-Project-aligned.RPP
+SHA-256: 57746c7b5a716304bd0e70d5afcf53f8441999c0065418cd9ff308fb881b25a1
 ```
 
-Canonical project SHA before/after all latest production gates:
+Canonical project before/after:
 
 ```text
 2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1
 ```
 
-Rejected stem paths are documented in `evidence/LIVE-STEMS-2026-09-08.md`; neither headless persisted selection nor action `42230` is admitted.
+Verification confirms the OH reference received no alignment FX; OH media/item/pan state is unchanged; shell media/item/pan state is unchanged; only shell `AI_Drum_Shell_Phase_Align` FX and offset metadata were added.
+
+The continuation also fixes the inherited `rack` substring false-positive so `8-Bar Drum Track - 120 BPM` is no longer classified as a rack tom.
+
+Scope boundary: this alignment phase preserves pan and does not auto-flip polarity. It aligns timing/phase by delay and reports inverse-polarity dominance. The next increment is deterministic close-shell stereo pan placement against the OH image.
 
 Network hardening note remains: REAPER's Web Interface was observed bound to `0.0.0.0:2307`; `reaperctl` itself uses/refuses endpoints conservatively, but the server binding is not claimed to be loopback-only.
-
-Next production increment: deterministic `align-drums` using the admitted overhead-anchored drum workflow.
