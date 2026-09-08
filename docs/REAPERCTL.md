@@ -15,6 +15,7 @@ bin/reaperctl session --require-transport
 bin/reaperctl play --json
 bin/reaperctl stop --json
 bin/reaperctl render --output /absolute/path/mix.wav --json
+bin/reaperctl export-stems --track 'Kick Test' --track 'Snare Test' --output-dir /absolute/path/stems --json
 ```
 
 ## Session and transport
@@ -25,30 +26,55 @@ The Web endpoint is resolved from `--web-url`, `REAPERCTL_WEB_URL`, or the activ
 
 ## Render
 
-`render` performs a verified offline render without changing the canonical project.
+`render` performs a verified offline render without changing the canonical project. The admitted contract is WAV / PCM / 48,000 Hz / stereo / 24-bit / entire project.
+
+The command hashes the canonical RPP, creates a temporary RPP in the canonical project directory, forces the render contract, invokes REAPER 7.79 with `-newinst -nosplash -renderproject`, removes the temporary RPP, verifies format/duration/non-silence/SHA-256, and hashes the canonical project again. Any canonical-project byte change is a failure.
+
+An exploratory 44.1 kHz render was rejected; the admitted implementation explicitly forces and verifies 48 kHz.
+
+## Export selected-track stems
+
+`export-stems` exports REAPER's native **Selected tracks (stems)** source rather than approximating stems through solo/master routing.
 
 ```bash
-bin/reaperctl render \
-  --output /mnt/data/reaperctl-renders/ASIO-Routing-Project.wav \
+bin/reaperctl export-stems \
+  --track 'Kick Test' \
+  --track 'Snare Test' \
+  --output-dir /mnt/data/reaperctl-stems \
   --json
 ```
 
-The initial admitted render contract is deliberately narrow:
+The initial admitted stem contract is deliberately strict:
 
 ```text
+source: REAPER native Selected tracks (stems)
+track selection: exact track-name match
+naming: $track.wav
+track names: filename-safe names only
 container: WAV
 encoding: PCM
 sample rate: 48000 Hz
 channels: 2
 sample width: 24 bit
 bounds: entire project
+output directory: absent or empty
+silence: rejected unless --allow-silent is explicit
 ```
 
-The command validates the baseline, hashes the canonical RPP, refuses an existing target unless `--overwrite` is explicit, creates a temporary RPP in the canonical project directory, forces an absolute `RENDER_FILE`, empty `RENDER_PATTERN`, `RENDER_FMT 0 2 48000`, and entire-project bounds, invokes the actual REAPER 7.79 binary with `-newinst -nosplash -renderproject`, removes the temporary RPP, verifies the output format/duration/non-silence/SHA-256, and hashes the canonical project again. Any canonical-project byte change is a failure.
+Implementation safeguards:
 
-A first exploratory render that inherited the prior render settings produced 44.1 kHz and was **rejected**. The admitted implementation explicitly forces 48 kHz and has a unit test that rejects 44.1 kHz output.
+- the canonical RPP is hashed before and after;
+- a disposable RPP is created in the canonical project directory so relative media remains valid;
+- a disposable copy of the REAPER resource/config tree is used, with Web control disabled in that copy;
+- a generated ReaScript selects only the requested tracks in memory and requests `RENDER_SETTINGS=2`, 48 kHz, stereo, whole-project bounds and `$track` naming;
+- the script opens action `40015` (the current Render-to-File surface);
+- `reaperctl` requires the known REAPER 7.79 Render-dialog and source-menu geometry before any X11 click is allowed;
+- the native `Selected tracks (stems)` source is selected and REAPER must report `RENDER_SETTINGS=2` before rendering;
+- only the exact expected `$track.wav` files are admitted;
+- every stem is checked for PCM format, 48 kHz, stereo, 24-bit, frames, duration, non-silence unless explicitly allowed, size and SHA-256;
+- the disposable REAPER process/project/config are destroyed afterward.
 
-`render` currently accepts `.wav` only. Other formats should be added as separate verified continuation increments rather than inferred from filenames or REAPER defaults.
+Two tempting paths were rejected during development: headless `-renderproject` with persisted selection produced `Nothing to render!`, and action `42230` reset stems to master mix. Neither is used by the admitted exporter.
 
 ## Web control admission
 
@@ -65,7 +91,8 @@ REAPER 7.79 itself was observed listening on `0.0.0.0:2307`; therefore the serve
 ## Live evidence
 
 - `evidence/LIVE-TRANSPORT-2026-09-08.md` — canonical session, play and stop state transitions.
-- `evidence/LIVE-RENDER-2026-09-08.md` — actual `reaperctl render` output and byte-level verification.
+- `evidence/LIVE-RENDER-2026-09-08.md` — verified 48 kHz master render.
+- `evidence/LIVE-STEMS-2026-09-08.md` — verified native selected-track stem export.
 
 ## Environment overrides
 
@@ -83,17 +110,7 @@ REAPERCTL_BASELINE
 REAPERCTL_WEB_URL
 ```
 
-Overrides change where `reaperctl` looks; they do not alter the immutable baseline values.
-
-## Exit codes
-
-```text
-0  check/action completed and resulting state/output was verified
-1  health/session requirement failed
-2  invalid baseline, argument, output contract, or overwrite condition
-3  canonical live session or transport backend unavailable
-4  REAPER action/render execution or post-action verification failed
-```
+Overrides change where `reaperctl` looks; they do not alter immutable baseline values.
 
 ## Development order
 
@@ -101,6 +118,6 @@ Overrides change where `reaperctl` looks; they do not alter the immutable baseli
 2. `session` / `play` / `stop` — **implemented and live-verified**.
 3. Web control admission — **implemented and live-verified**.
 4. `render` — **implemented and live-verified at 48 kHz stereo PCM**.
-5. `export-stems` — next production action.
-6. `align-drums` — admitted overhead-anchored drum workflow.
+5. `export-stems` — **implemented and live-verified using native selected-track stem semantics**.
+6. `align-drums` — next: invoke the admitted overhead-anchored drum workflow.
 7. `screenshot` / `snapshot` / `backup` — evidence and recovery operations.
