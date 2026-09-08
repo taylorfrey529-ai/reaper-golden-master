@@ -1,6 +1,6 @@
 # Continuation Status
 
-Current state: **active development — transport and verified render live-tested**
+Current state: **active development — transport, master render, and native stem export live-verified**
 
 ```text
 Repository: taylorfrey529-ai/reaper-golden-master
@@ -17,28 +17,48 @@ Live-verified continuation capabilities:
 - live REAPER/X11/project session discovery;
 - reproducible Web-control admission;
 - state-confirmed `play` / `stop`;
-- verified offline `render` through a temporary project copy;
-- explicit 48 kHz / stereo / 24-bit PCM render contract;
-- output SHA-256, duration, frame count, and non-silence verification;
-- canonical project byte-preservation before/after render.
+- verified 48 kHz stereo 24-bit master `render`;
+- native **Selected tracks (stems)** export through a disposable REAPER instance/config/project;
+- exact output-file set, format, non-silence and SHA-256 verification;
+- canonical project byte-preservation before/after production actions.
 
-## Latest live render
+## Latest master render
 
 ```text
-Output: /mnt/data/reaperctl-renders/ASIO-Routing-Project-reaperctl-live-48k.wav
-Bytes: 4608690
 SHA-256: 44ef543f74070a04b65690487ba0bb65638be0926c43935a8a4f3548f09041cd
-Format: PCM WAV, 24-bit, stereo, 48000 Hz
-Frames: 768000
-Duration: 16.000000 s
-Non-silent: yes
-Canonical project SHA before/after:
-2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1
-Temporary RPP leftovers: none
+PCM WAV: 24-bit / stereo / 48000 Hz
+frames: 768000
+duration: 16.000000 s
 ```
 
-An earlier exploratory render produced 44.1 kHz and was rejected from admission. The current implementation forces and verifies 48 kHz.
+## Latest native stem export
+
+```text
+Kick Test.wav
+  bytes: 4608690
+  SHA-256: ed938c8d8eb345e9ef595980108f3365c7375b969f88b1dfbc927f6ace1bce20
+  PCM WAV: 24-bit / stereo / 48000 Hz
+  frames: 768000
+  duration: 16.000000 s
+  non-silent: yes
+
+Snare Test.wav
+  bytes: 4608690
+  SHA-256: 55c1174f90f45553ab61ca22642bb7adf4c598d648beaeb42c4598aac8fe1ade
+  PCM WAV: 24-bit / stereo / 48000 Hz
+  frames: 768000
+  duration: 16.000000 s
+  non-silent: yes
+```
+
+Canonical project SHA before/after all latest production gates:
+
+```text
+2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1
+```
+
+Rejected stem paths are documented in `evidence/LIVE-STEMS-2026-09-08.md`; neither headless persisted selection nor action `42230` is admitted.
 
 Network hardening note remains: REAPER's Web Interface was observed bound to `0.0.0.0:2307`; `reaperctl` itself uses/refuses endpoints conservatively, but the server binding is not claimed to be loopback-only.
 
-Next production increment: deterministic `export-stems` with per-file output verification.
+Next production increment: deterministic `align-drums` using the admitted overhead-anchored drum workflow.
