@@ -170,7 +170,14 @@ def _run_transform(operation: str, project: Path, candidate: Path, baseline: Pat
     return report
 
 
-def commit_candidate(project: Path, candidate: Path, rollback_root: Path, operation: str, policy_sha: str) -> dict[str, Any]:
+def commit_candidate(
+    project: Path,
+    candidate: Path,
+    rollback_root: Path,
+    operation: str,
+    policy_sha: str,
+    live_reaper_pids: list[int] | None = None,
+) -> dict[str, Any]:
     if candidate.is_symlink() or not candidate.is_file():
         raise ValueError("candidate project must be a regular non-symlink file")
     original = project.read_bytes()
@@ -180,6 +187,8 @@ def commit_candidate(project: Path, candidate: Path, rollback_root: Path, operat
     if sha256(project) != original_sha:
         raise RuntimeError("canonical project changed before mutation commit")
     backup = _backup_original(project, rollback_root, original, original_sha, original_mode)
+    if sha256(project) != original_sha:
+        raise RuntimeError("canonical project changed while rollback artifact was being prepared")
     os.chmod(candidate, stat.S_IMODE(original_mode))
     replaced = False
     try:
@@ -207,6 +216,8 @@ def commit_candidate(project: Path, candidate: Path, rollback_root: Path, operat
         "atomic_replace": True,
         "postwrite_hash_verified": True,
         "rollback_verified": True,
+        "live_reaper_override": bool(live_reaper_pids),
+        "live_reaper_pids": list(live_reaper_pids or []),
     }
     _write_json_atomic(receipt, record)
     record["receipt"] = str(receipt)
@@ -222,6 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("pan-drums", "align-drums"):
         command = sub.add_parser(name)
         command.add_argument("--track", action="append", dest="tracks")
+        command.add_argument("--live", action="store_true", help="explicitly permit on-disk mutation while canonical REAPER is running")
         command.add_argument("--json", action="store_true")
         if name == "align-drums":
             command.add_argument("--timeout", type=float, default=20.0)
@@ -238,6 +250,11 @@ def main(argv: list[str] | None = None) -> int:
         load_mutability(args.mutability)
         paths = core.workspace_paths(data)
         project = confined_project(paths["project"], paths["workspace"])
+        live_pids = core.discover_process_pids(paths["reaper"])
+        if live_pids and not args.live:
+            raise ValueError(
+                "canonical REAPER is running; stop it before mutation or pass --live to explicitly accept live-session overwrite risk"
+            )
         policy_sha = sha256(args.mutability)
         rollback_root = paths["workspace"] / "evidence" / "mutations"
         fd, candidate_name = tempfile.mkstemp(prefix=f".{project.stem}.mutation-", suffix=project.suffix, dir=str(project.parent))
@@ -247,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
             report = _run_transform(args.operation, project, candidate, args.baseline, args.tracks, getattr(args, "timeout", 20.0))
             if sha256(project) != report.get("input_project_sha256", report.get("canonical_project_sha256")):
                 raise RuntimeError("transform report does not bind the current canonical project")
-            mutation = commit_candidate(project, candidate, rollback_root, args.operation, policy_sha)
+            mutation = commit_candidate(project, candidate, rollback_root, args.operation, policy_sha, live_pids if args.live else None)
         finally:
             try:
                 candidate.unlink()
@@ -269,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"After:  {mutation['after_sha256']}")
         print(f"Rollback: {mutation['rollback_artifact']}")
         print(f"Receipt:  {mutation['receipt']}")
+        if mutation["live_reaper_override"]:
+            print(f"Live REAPER override: yes ({mutation['live_reaper_pids']})")
     return 0
 
 
