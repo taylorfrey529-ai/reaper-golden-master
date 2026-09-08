@@ -17,6 +17,7 @@ PAN_DRUMS_PATH = ROOT / "scripts" / "reaper-pan-drums.py"
 SCREENSHOT_PATH = ROOT / "scripts" / "reaper-screenshot.py"
 SNAPSHOT_PATH = ROOT / "scripts" / "reaper-snapshot.py"
 BACKUP_PATH = ROOT / "scripts" / "reaper-backup.py"
+RESTORE_PATH = ROOT / "scripts" / "reaper-restore.py"
 
 
 def _load(name: str, path: Path):
@@ -68,12 +69,13 @@ def main() -> int:
         "screenshot": SCREENSHOT_PATH,
         "snapshot": SNAPSHOT_PATH,
         "backup": BACKUP_PATH,
+        "restore": RESTORE_PATH,
     }
     if stripped and stripped[0] in commands:
         command = stripped[0]
         module = _load(f"reaperctl_{command.replace('-', '_')}", commands[command])
         command_args = stripped[1:]
-        if baseline is not None and command != "backup":
+        if baseline is not None and command not in {"backup", "restore"}:
             command_args = ["--baseline", baseline, *command_args]
         return int(module.main(command_args))
     return int(_core.main())
