@@ -18,6 +18,7 @@ SCREENSHOT_PATH = ROOT / "scripts" / "reaper-screenshot.py"
 SNAPSHOT_PATH = ROOT / "scripts" / "reaper-snapshot.py"
 BACKUP_PATH = ROOT / "scripts" / "reaper-backup.py"
 RESTORE_PATH = ROOT / "scripts" / "reaper-restore.py"
+MUTATE_PATH = ROOT / "scripts" / "reaper-mutate.py"
 
 
 def _load(name: str, path: Path):
@@ -70,6 +71,7 @@ def main() -> int:
         "snapshot": SNAPSHOT_PATH,
         "backup": BACKUP_PATH,
         "restore": RESTORE_PATH,
+        "mutate": MUTATE_PATH,
     }
     if stripped and stripped[0] in commands:
         command = stripped[0]
