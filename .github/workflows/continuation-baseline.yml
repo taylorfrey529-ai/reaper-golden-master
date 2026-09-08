@@ -25,6 +25,9 @@ jobs:
       - name: Verify secure full OS mutable-layer policy
         if: github.ref_name == 'full-os-mutable-layer'
         run: bash scripts/verify-os-mutability.sh
+      - name: Verify full OS system-change evidence
+        if: github.ref_name == 'full-os-mutable-layer'
+        run: python3 scripts/verify-system-change-manifests.py
       - name: Compile control-plane tools
         run: |
           python3 -m py_compile bin/reaperctl
@@ -41,8 +44,10 @@ jobs:
           python3 -m py_compile scripts/reaper-mutate.py
           python3 -m py_compile scripts/reaper-rollback.py
           python3 -m py_compile scripts/os-mutation-policy.py
+          python3 -m py_compile scripts/verify-system-change-manifests.py
+          python3 -m py_compile os/usr-local/bin/reaper-workspace-status
           python3 -m py_compile recovery/workspace/desktop_shell.py
-          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/rollback/rollback-reaper-workspace-status.sh
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
