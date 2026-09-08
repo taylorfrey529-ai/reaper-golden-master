@@ -1,0 +1,75 @@
+{
+  "affected_packages": [],
+  "affected_paths": [
+    {
+      "after_exists": true,
+      "after_sha256": "765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed",
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "mutable",
+      "path": "/usr/local/bin/reaper-workspace-status"
+    }
+  ],
+  "branch": "full-os-mutable-layer",
+  "classification": "mutable",
+  "network_listeners": {
+    "after": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "before": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "new_listeners": []
+  },
+  "operation": "install-local-system-application",
+  "package_transaction_log": null,
+  "policy_sha256": "6ed93cecc10587b00791d1cff2139022497c34d32d6ad0dc02a9441c26864003",
+  "post_state": {
+    "notes": "Package inventory is byte-identical to pre-state; retained utility passed live status execution.",
+    "package_inventory_path": "/mnt/data/full-os-mutation-rehearsal/packages-after.tsv",
+    "package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018"
+  },
+  "pre_state": {
+    "notes": "Target was absent; canonical project and REAPER runtime hashes were captured before the write.",
+    "package_inventory_path": "/mnt/data/full-os-mutation-rehearsal/packages-before.tsv",
+    "package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018"
+  },
+  "requested_change": "Install /usr/local/bin/reaper-workspace-status as the first retained full-OS mutable-layer application, with atomic installation and a rehearsed hash-guarded rollback to the original absent state.",
+  "rollback": {
+    "artifacts": [
+      "/mnt/data/full-os-mutation-rehearsal/rollback-reaper-workspace-status.sh",
+      "/mnt/data/full-os-mutation-rehearsal/reaper-workspace-status.v2"
+    ],
+    "available": true,
+    "instructions": "Run rollback-reaper-workspace-status.sh with the retained installed SHA-256. It refuses deletion if the target bytes drift. Rollback to the original absent state was rehearsed, then the exact v2 payload was reinstalled."
+  },
+  "schema_version": 1,
+  "services": {
+    "added": [],
+    "disabled": [],
+    "enabled": [],
+    "removed": [],
+    "started": [],
+    "stopped": []
+  },
+  "verification": {
+    "golden_master_unchanged": true,
+    "notes": "No package changes, no listener changes, no service changes. Canonical project remained 2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1 and REAPER runtime remained cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4. Canonical Xvfb :88 and Virtual Apollo sink remained running.",
+    "result": "PASS",
+    "security_invariants_preserved": true
+  }
+}
