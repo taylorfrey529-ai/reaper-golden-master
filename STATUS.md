@@ -1,6 +1,6 @@
 # Continuation Status
 
-Current state: **active development — production controls, evidence/backup, and R2 clean-target restore live-verified**
+Current state: **promoted continuation — production controls, evidence/backup, and R2 clean-target restore are live-verified on `main`**
 
 ```text
 Repository: taylorfrey529-ai/reaper-golden-master
@@ -165,8 +165,22 @@ After rehearsal, the original live roots were restored and restarted with the sa
 
 Detailed proof: `evidence/LIVE-RESTORE-REHEARSAL-2026-09-08.md`.
 
+## Promotion gate
+
+Technical continuation proof through clean-target restore completed on `development/reaperctl` at:
+
+```text
+52a1ee97a19053c1fb1e2754fcd4d2e77a22a4f6
+```
+
+Owner approval for the promotion gate was supplied separately after technical verification. `main` was then fast-forwarded from `2762c9e9ac5c888e9d335c4481e858c9ef5f0f05` to that exact verified continuation head without force.
+
+Post-promotion GitHub Actions run `34287126542` / run #59 passed on `main` at the same exact head, including inherited Golden Master baseline verification, control-plane compilation, unit/regression tests, continuation command routing, and static health checks.
+
+This promotion advances the **continuation repository state only**. It does not redefine, mutate, or replace `GM-2026-09-08`, its Golden Master ID, its recovery authority, or its exact runtime binary tier.
+
 ## Current gate
 
-Technical continuation proof through clean-target restore is complete on `development/reaperctl`. `main` remains untouched.
+Promotion to `main` is complete and technically verified. No new runtime candidate has been admitted beyond the promoted R2 continuation state.
 
-Next gate: **branch review / promotion decision**. Promotion is owner-controlled; no merge is implied by technical verification alone.
+Next development cursor: **begin the next continuation transaction from the promoted `main` head while preserving all Golden Master and R2 recovery locks**.
