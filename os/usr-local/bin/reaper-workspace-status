@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path
+
+WORKSPACE = Path('/mnt/data/ubuntu-desktop-workspace')
+PROJECT = WORKSPACE / 'projects/ASIO-Routing-Project/ASIO-Routing-Project.RPP'
+REAPER = WORKSPACE / 'apps/REAPER/reaper'
+APOLLO = Path('/mnt/data/virtual-apollo')
+CANONICAL_DISPLAY = ':88'
+
+
+def sha256(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def process_cmdlines() -> list[str]:
+    rows: list[str] = []
+    for entry in Path('/proc').iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            raw = (entry / 'cmdline').read_bytes()
+        except (OSError, PermissionError):
+            continue
+        if raw:
+            rows.append(raw.replace(b'\x00', b' ').decode('utf-8', 'replace').strip())
+    return rows
+
+
+def any_process(rows: list[str], *needles: str) -> bool:
+    return any(all(needle in row for needle in needles) for row in rows)
+
+
+rows = process_cmdlines()
+result = {
+    'mode': 'full-os-mutable-layer',
+    'workspace_root': str(WORKSPACE),
+    'workspace_exists': WORKSPACE.is_dir(),
+    'project': str(PROJECT),
+    'project_sha256': sha256(PROJECT),
+    'reaper': str(REAPER),
+    'reaper_sha256': sha256(REAPER),
+    'reaper_running': any_process(rows, str(REAPER)),
+    'canonical_display': CANONICAL_DISPLAY,
+    'current_process_display': os.environ.get('DISPLAY'),
+    'canonical_xvfb_running': any_process(rows, 'Xvfb', CANONICAL_DISPLAY),
+    'virtual_apollo_root': str(APOLLO),
+    'virtual_apollo_exists': APOLLO.is_dir(),
+    'virtual_apollo_sink_running': any_process(rows, 'apollo_pipe_sink.py'),
+}
+print(json.dumps(result, indent=2, sort_keys=True))
