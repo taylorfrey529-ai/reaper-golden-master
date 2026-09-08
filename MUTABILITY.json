@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "branch": "mutable-restrictions-lifted",
+  "base_commit": "e02dc54838b2b9dc1629b137b54ccbd5d997aeb4",
+  "mode": "secure_mutable_continuation",
+  "mutable_surfaces": {
+    "continuation_project_state": true,
+    "continuation_configuration": true,
+    "virtual_apollo_runtime_state": true,
+    "desktop_session_configuration": true,
+    "derived_audio_outputs": true,
+    "scripts_and_dsp": true
+  },
+  "mutation_policy": {
+    "in_place_updates_allowed": true,
+    "overwrite_existing_continuation_outputs_allowed": true,
+    "live_state_changes_allowed": true,
+    "prewrite_backup_required": true,
+    "atomic_replace_required": true,
+    "postwrite_hash_required": true,
+    "rollback_artifact_required": true,
+    "silent_mutation_allowed": false
+  },
+  "security_invariants": {
+    "path_traversal_allowed": false,
+    "symlink_escape_allowed": false,
+    "remote_web_default_allowed": false,
+    "network_enablement_implied": false,
+    "reaper_binary_modification_allowed": false,
+    "golden_master_record_modification_allowed": false,
+    "recovery_authority_modification_allowed": false,
+    "license_or_evaluation_bypass_allowed": false,
+    "unverified_external_payload_execution_allowed": false
+  },
+  "candidate_boundary": {
+    "baseline_lock_changes_require_candidate": true,
+    "runtime_binary_change_requires_candidate": true,
+    "promotion_requires_explicit_owner_approval": true
+  }
+}
