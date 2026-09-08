@@ -1,0 +1,93 @@
+{
+  "affected_packages": [],
+  "affected_paths": [
+    {
+      "after_exists": true,
+      "after_sha256": "d0ba66b5979730d309518648260fb962c16d08db1ad7285ca1197f4562bcffc3",
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "mutable",
+      "path": "/opt/dotnet-10.0.302"
+    },
+    {
+      "after_exists": true,
+      "after_sha256": "6a034df91a4a8ccd3791879f796bc804cbc04345633c2ab1bcaa335719a1f793",
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "mutable",
+      "path": "/usr/local/bin/dotnet"
+    },
+    {
+      "after_exists": true,
+      "after_sha256": "a3722a299d8c0fc7b456964c16d589a95352f93a7f30dce55d7b0bd8ed92c36e",
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "mutable",
+      "path": "/etc/profile.d/dotnet-10.0.302.sh"
+    }
+  ],
+  "branch": "full-os-mutable-layer",
+  "classification": "mutable",
+  "network_listeners": {
+    "after": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "before": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "new_listeners": []
+  },
+  "operation": "install-canonical-dotnet-toolchain",
+  "package_transaction_log": null,
+  "policy_sha256": "6ed93cecc10587b00791d1cff2139022497c34d32d6ad0dc02a9441c26864003",
+  "post_state": {
+    "notes": "Installed package inventory is byte-identical to pre-state. SDK reports 10.0.302 with runtime 10.0.10 and compiled/ran a net10.0 console smoke test.",
+    "package_inventory_path": "/mnt/data/full-os-toolchain-rehearsal/packages-final.tsv",
+    "package_inventory_sha256": "73e6b9f76a534584d1da0721a04b634b5d40e4bb1e1d82596ad1dd43fd65e23c"
+  },
+  "pre_state": {
+    "notes": "No dotnet command or target path existed. APT source/keyring hashes and protected REAPER/project hashes were captured before the transaction.",
+    "package_inventory_path": "/mnt/data/full-os-toolchain-rehearsal/packages-pre.tsv",
+    "package_inventory_sha256": "73e6b9f76a534584d1da0721a04b634b5d40e4bb1e1d82596ad1dd43fd65e23c"
+  },
+  "requested_change": "Install the canonical .NET SDK 10.0.302 toolchain from toolchains.zip SHA-256 568650bc01243a4eee7abaa6512ef4ae58e34e1a11c0178b7f76acbe57fec711 into /opt/dotnet-10.0.302, expose /usr/local/bin/dotnet, and add /etc/profile.d/dotnet-10.0.302.sh. The online APT subpath was rejected after signed Debian repository metadata could not be refreshed because DNS resolution failed; no unsigned or Ubuntu .deb payloads were installed.",
+  "rollback": {
+    "artifacts": [
+      "/mnt/data/full-os-toolchain-rehearsal/install-dotnet-10.0.302.sh",
+      "/mnt/data/full-os-toolchain-rehearsal/rollback-dotnet-10.0.302.sh",
+      "/mnt/data/full-os-toolchain-rehearsal/stage-tree.manifest",
+      "/mnt/data/toolchains.zip"
+    ],
+    "available": true,
+    "instructions": "Run rollback-dotnet-10.0.302.sh to return to the original absent state; it hash-checks the entire installed tree, launcher and profile and refuses on drift. Reinstallation was then rehearsed with install-dotnet-10.0.302.sh, which verifies the canonical toolchains.zip archive SHA, ZIP safety/inventory, extracted tree digest, host binary, launcher/profile hashes, and SDK version before admitting the toolchain."
+  },
+  "schema_version": 1,
+  "services": {
+    "added": [],
+    "disabled": [],
+    "enabled": [],
+    "removed": [],
+    "started": [],
+    "stopped": []
+  },
+  "verification": {
+    "golden_master_unchanged": true,
+    "notes": "Canonical toolchains.zip matched locked SHA-256 568650bc01243a4eee7abaa6512ef4ae58e34e1a11c0178b7f76acbe57fec711. ZIP integrity passed with 4,911 files / 628,335,803 bytes, no traversal and no symlinks. Installed tree digest d0ba66b5979730d309518648260fb962c16d08db1ad7285ca1197f4562bcffc3 matched staged bytes before and after rollback rehearsal. Canonical RPP stayed 2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1; REAPER stayed cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4. APT source/keyring hashes, package inventory, listeners, Xvfb :88, and Virtual Apollo remained unchanged. The exact fail-closed installer was exercised after rollback and returned PASS with SDK 10.0.302.",
+    "result": "PASS",
+    "security_invariants_preserved": true
+  }
+}
