@@ -47,7 +47,7 @@ jobs:
           python3 -m py_compile scripts/verify-system-change-manifests.py
           python3 -m py_compile os/usr-local/bin/reaper-workspace-status
           python3 -m py_compile recovery/workspace/desktop_shell.py
-          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/rollback/rollback-reaper-workspace-status.sh
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
@@ -66,6 +66,8 @@ jobs:
           bin/reaperctl rollback --help >/dev/null
           if [ "${GITHUB_REF_NAME}" = "full-os-mutable-layer" ]; then
             python3 scripts/os-mutation-policy.py path /usr/local/bin/tool --json >/dev/null
+            python3 scripts/os-mutation-policy.py path /opt/dotnet-10.0.302 --json >/dev/null
+            python3 scripts/os-mutation-policy.py path /etc/profile.d/dotnet-10.0.302.sh --json >/dev/null
             python3 scripts/os-mutation-policy.py package cmake --json >/dev/null
           fi
       - name: Run static reaperctl health gate
