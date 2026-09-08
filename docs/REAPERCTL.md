@@ -18,6 +18,8 @@ bin/reaperctl render --output /absolute/path/mix.wav --json
 bin/reaperctl export-stems --track 'Kick Test' --track 'Snare Test' --output-dir /absolute/path/stems --json
 bin/reaperctl align-drums --analyze-only --json
 bin/reaperctl align-drums --output-project /absolute/path/ASIO-Routing-Project-aligned.RPP --json
+bin/reaperctl pan-drums --analyze-only --json
+bin/reaperctl pan-drums --project /absolute/path/ASIO-Routing-Project-aligned.RPP --output-project /absolute/path/ASIO-Routing-Project-aligned-panned.RPP --json
 ```
 
 ## Session and transport
@@ -101,7 +103,49 @@ Tom 1 Test  +0.000000 ms   5 accepted hits   OH L/1   score 0.999800   Tom 1 sel
 
 The verified aligned RPP SHA-256 is `57746c7b5a716304bd0e70d5afcf53f8441999c0065418cd9ff308fb881b25a1`; the canonical RPP remained `2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1`.
 
-This phase deliberately **does not change pan or flip polarity**. It preserves the historical workflow's timing/phase-by-delay behavior; inverse-polarity correlation is reported. Stereo pan matching is a separate continuation increment.
+This command deliberately does **not** change pan or flip polarity. Timing alignment and pan placement remain separate continuity surfaces.
+
+## Pan drum shells to the overhead image
+
+`pan-drums` derives close-shell stereo placement from the fixed OH image while mechanically preserving the timing-alignment state.
+
+```bash
+bin/reaperctl pan-drums --analyze-only --json
+
+bin/reaperctl pan-drums \
+  --project /mnt/data/reaperctl-align/ASIO-Routing-Project-aligned.RPP \
+  --output-project /mnt/data/reaperctl-align/ASIO-Routing-Project-aligned-panned.RPP \
+  --json
+```
+
+The first admitted pan contract is intentionally conservative:
+
+```text
+reference: exactly one stereo OH WAVE track
+shell source: mono 48 kHz / 24-bit WAVE
+shell event scan: 2 kHz / 5 ms bins
+maximum events: 8
+minimum event separation: 120 ms
+local OH anchor search: shell event -5 ms to +25 ms
+stereo energy window: 2 ms pre / 18 ms post around the local OH anchor
+pan mapping: inverse equal-power L/R amplitude ratio
+robust combination: median + MAD rejection
+minimum accepted shell hits: 2
+```
+
+`pan-drums` changes only the top-level track `VOLPAN` value for admitted shell tracks. It preserves the original RPP newline bytes, refuses an in-place edit, verifies the OH chunk is unchanged, verifies all unrelated tracks are unchanged, verifies media/item state is unchanged, and requires the raw byte-line diff to contain exactly one `VOLPAN` line per panned shell.
+
+Latest overhead-derived placements:
+
+```text
+Kick Test   -0.062892794   6.289% left    4 / 4 accepted hits
+Snare Test  +0.066860605   6.686% right   2 / 2 accepted hits
+Tom 1 Test  -0.041736115   4.174% left    5 / 5 accepted hits
+```
+
+A stronger aligned-input fixture gate preserved all `AI_DRUM_ALIGN_DELAY_MS` and `AI_Drum_Shell_Phase_Align` state while changing exactly three CRLF-preserving `VOLPAN` lines. Actual REAPER 7.79 read-back returned the same four `D_PAN` values, including `OH Stereo Test = 0.000000000`.
+
+The first implementation attempt was rejected because normal text I/O normalized CRLF line endings to LF. The admitted writer preserves original newline sequences and treats any extra byte-line change as failure.
 
 ## Web control admission
 
@@ -121,6 +165,7 @@ REAPER 7.79 itself was observed listening on `0.0.0.0:2307`; therefore the serve
 - `evidence/LIVE-RENDER-2026-09-08.md` — verified 48 kHz master render.
 - `evidence/LIVE-STEMS-2026-09-08.md` — verified native selected-track stem export.
 - `evidence/LIVE-ALIGN-DRUMS-2026-09-08.md` — verified OH-anchored shell timing alignment.
+- `evidence/LIVE-PAN-DRUMS-2026-09-08.md` — verified OH-image pan placement with byte-level pan-only diff and REAPER 7.79 read-back.
 
 ## Environment overrides
 
@@ -148,5 +193,5 @@ Overrides change where `reaperctl` looks; they do not alter immutable baseline v
 4. `render` — **implemented and live-verified at 48 kHz stereo PCM**.
 5. `export-stems` — **implemented and live-verified using native selected-track stem semantics**.
 6. `align-drums` — **implemented and live-verified with Tom 1 self-anchor continuity**.
-7. stereo shell pan placement against OH — **next**.
-8. `screenshot` / `snapshot` / `backup` — evidence and recovery operations.
+7. `pan-drums` — **implemented and live-verified against the fixed OH image**.
+8. `screenshot` / `snapshot` / `backup` — next evidence/recovery increment.
