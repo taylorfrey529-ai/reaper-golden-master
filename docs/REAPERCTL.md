@@ -52,9 +52,40 @@ The Web endpoint is resolved in this order:
 2. `REAPERCTL_WEB_URL`;
 3. the first `csurf_N=HTTP ...` entry found in the active REAPER resource `reaper.ini`.
 
-Non-loopback endpoints are rejected unless `--allow-remote-web` is explicitly supplied.
+Non-loopback endpoint URLs are rejected unless `--allow-remote-web` is explicitly supplied.
 
-The Golden Master live workspace initially had no Web control surface configured. Until a control surface is admitted as continuation state, `play` and `stop` correctly refuse with an operational-unavailable result instead of falling back to synthetic keyboard input.
+## Web control admission
+
+The continuation carries a reproducible configuration helper:
+
+```bash
+python3 scripts/configure-web-control.py \
+  --ini /mnt/data/ubuntu-desktop-workspace/config/REAPER/reaper.ini \
+  --backup-dir /mnt/data/reaperctl-live-backups \
+  --reaper-binary /mnt/data/ubuntu-desktop-workspace/apps/REAPER/reaper
+```
+
+Without `--apply`, this is a check/plan operation. With `--apply`, it:
+
+- refuses an ambiguous/different existing HTTP control surface;
+- refuses to modify the INI when the specified REAPER binary is running;
+- creates a pre-change backup first;
+- adds the standard continuation surface `csurf_N=HTTP 0 2307 '' 'index.html' 0 ''`;
+- preserves existing non-HTTP control surfaces;
+- is idempotent when the exact surface already exists;
+- reports before/after SHA-256 values and whether a restart is required.
+
+REAPER must be restarted after a newly applied Web surface so it loads the control-surface configuration.
+
+## Live verification
+
+On 2026-09-08 the canonical live workspace was restarted with the admitted Web surface on port `2307`. `session --require-transport` passed, `play` confirmed `playstate 0 → 1`, an independent `TRANSPORT` read observed the playhead at `0.501333s`, and `stop` confirmed `playstate 1 → 0` with a final independent stopped read at `0.000000s`.
+
+The canonical project SHA-256 was unchanged across the controlled restart. The legitimate REAPER evaluation/About dialog remained visible and was not bypassed or suppressed. Evidence is recorded in `evidence/LIVE-TRANSPORT-2026-09-08.md`.
+
+## Network boundary
+
+REAPER 7.79 itself was observed listening on `0.0.0.0:2307` for the Web Interface. Therefore the **server is not described as loopback-only**. `reaperctl` targets `127.0.0.1:2307` and refuses non-loopback endpoint URLs by default, but server-side interface binding remains a hardening item for any environment where the VM network is externally reachable.
 
 ## Environment overrides
 
@@ -85,8 +116,8 @@ Overrides change where `reaperctl` looks; they do not change the immutable conti
 ## Development order
 
 1. `baseline` / `health` — admission and observation. **Implemented.**
-2. `session` / `play` / `stop` — deterministic discovery and state-confirmed transport. **Implemented.**
-3. Web control-surface admission and controlled REAPER restart. **Next live gate.**
-4. `render` / `export-stems` — production actions with output verification.
+2. `session` / `play` / `stop` — deterministic discovery and state-confirmed transport. **Implemented and live-verified.**
+3. Web control-surface admission and controlled REAPER restart. **Implemented and live-verified.**
+4. `render` / `export-stems` — production actions with output verification. **Next.**
 5. `align-drums` — invoke the admitted overhead-anchored drum workflow.
 6. `screenshot` / `snapshot` / `backup` — evidence and recovery operations.
