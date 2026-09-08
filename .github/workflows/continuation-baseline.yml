@@ -23,7 +23,12 @@ jobs:
           python3 -m py_compile bin/reaperctl-core
           python3 -m py_compile scripts/configure-web-control.py
           python3 -m py_compile scripts/reaper-render.py
+          python3 -m py_compile scripts/reaper-export-stems.py
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
+      - name: Verify continuation command routing
+        run: |
+          bin/reaperctl render --help >/dev/null
+          bin/reaperctl export-stems --help >/dev/null
       - name: Run static reaperctl health gate
         run: bin/reaperctl health --static --json
