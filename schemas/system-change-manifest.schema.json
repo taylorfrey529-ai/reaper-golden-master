@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/taylorfrey529-ai/reaper-golden-master/schemas/system-change-manifest.schema.json",
+  "title": "Secure Full OS System Change Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "branch",
+    "policy_sha256",
+    "operation",
+    "classification",
+    "requested_change",
+    "affected_paths",
+    "affected_packages",
+    "pre_state",
+    "post_state",
+    "services",
+    "network_listeners",
+    "rollback",
+    "verification"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "branch": {"const": "full-os-mutable-layer"},
+    "policy_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "operation": {"type": "string", "minLength": 1},
+    "classification": {"enum": ["mutable", "candidate-required"]},
+    "requested_change": {"type": "string", "minLength": 1},
+    "affected_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "classification"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^/"},
+          "classification": {"enum": ["mutable", "candidate-required"]},
+          "before_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "after_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "before_exists": {"type": "boolean"},
+          "after_exists": {"type": "boolean"}
+        }
+      }
+    },
+    "affected_packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "classification"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "classification": {"enum": ["mutable", "candidate-required"]},
+          "before_version": {"type": ["string", "null"]},
+          "after_version": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "pre_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_inventory_sha256"],
+      "properties": {
+        "package_inventory_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "package_inventory_path": {"type": ["string", "null"]},
+        "notes": {"type": "string"}
+      }
+    },
+    "post_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_inventory_sha256"],
+      "properties": {
+        "package_inventory_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "package_inventory_path": {"type": ["string", "null"]},
+        "notes": {"type": "string"}
+      }
+    },
+    "package_transaction_log": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "repository_metadata_verified": {"type": "boolean"},
+        "package_signatures_verified": {"type": "boolean"}
+      }
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["added", "removed", "started", "stopped", "enabled", "disabled"],
+      "properties": {
+        "added": {"type": "array", "items": {"type": "string"}},
+        "removed": {"type": "array", "items": {"type": "string"}},
+        "started": {"type": "array", "items": {"type": "string"}},
+        "stopped": {"type": "array", "items": {"type": "string"}},
+        "enabled": {"type": "array", "items": {"type": "string"}},
+        "disabled": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "network_listeners": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after", "new_listeners"],
+      "properties": {
+        "before": {"type": "array", "items": {"type": "string"}},
+        "after": {"type": "array", "items": {"type": "string"}},
+        "new_listeners": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "artifacts"],
+      "properties": {
+        "available": {"type": "boolean"},
+        "artifacts": {"type": "array", "items": {"type": "string"}},
+        "instructions": {"type": "string"}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "golden_master_unchanged", "security_invariants_preserved"],
+      "properties": {
+        "result": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+        "golden_master_unchanged": {"type": "boolean"},
+        "security_invariants_preserved": {"type": "boolean"},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}
