@@ -91,7 +91,7 @@ def launch(cmd, **kwargs):
 def terminal():
     launch(['xterm','-title','Ubuntu Terminal','-geometry','100x28+205+120',
             '-fa','DejaVu Sans Mono','-fs','11','-bg','#300a24','-fg','#eeeeec',
-            '-e','bash','-lc',"printf '\033[1;38;5;208mUbuntu 24.04 Workspace\033[0m\n'; printf 'Offline local desktop session • DISPLAY=%s\n\n' \"$DISPLAY\"; cd /mnt/data; exec bash"])
+            '-e','bash','-lc',"printf '\\033[1;38;5;208mUbuntu 24.04 Workspace\\033[0m\\n'; printf 'Offline local desktop session • DISPLAY=%s\\n\\n' \"$DISPLAY\"; cd /mnt/data; exec bash"])
 
 def browser():
     local = ROOT/'home.html'
