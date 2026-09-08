@@ -13,6 +13,7 @@ CORE_PATH = ROOT / "bin" / "reaperctl-core"
 RENDER_PATH = ROOT / "scripts" / "reaper-render.py"
 STEMS_PATH = ROOT / "scripts" / "reaper-export-stems.py"
 ALIGN_PATH = ROOT / "scripts" / "reaper-align-drums.py"
+PAN_DRUMS_PATH = ROOT / "scripts" / "reaper-pan-drums.py"
 
 
 def _load(name: str, path: Path):
@@ -60,6 +61,7 @@ def main() -> int:
         "render": RENDER_PATH,
         "export-stems": STEMS_PATH,
         "align-drums": ALIGN_PATH,
+        "pan-drums": PAN_DRUMS_PATH,
     }
     if stripped and stripped[0] in commands:
         command = stripped[0]
