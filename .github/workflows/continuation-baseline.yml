@@ -29,6 +29,9 @@ jobs:
           python3 -m py_compile scripts/reaper-screenshot.py
           python3 -m py_compile scripts/reaper-snapshot.py
           python3 -m py_compile scripts/reaper-backup.py
+          python3 -m py_compile scripts/reaper-restore.py
+          python3 -m py_compile recovery/workspace/desktop_shell.py
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
@@ -40,5 +43,6 @@ jobs:
           bin/reaperctl screenshot --help >/dev/null
           bin/reaperctl snapshot --help >/dev/null
           bin/reaperctl backup --help >/dev/null
+          bin/reaperctl restore --help >/dev/null
       - name: Run static reaperctl health gate
         run: bin/reaperctl health --static --json
