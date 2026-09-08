@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE_PATH = ROOT / "bin" / "reaperctl-core"
 RENDER_PATH = ROOT / "scripts" / "reaper-render.py"
+STEMS_PATH = ROOT / "scripts" / "reaper-export-stems.py"
 
 
 def _load(name: str, path: Path):
@@ -55,12 +56,14 @@ def _split_global_baseline(argv: list[str]) -> tuple[list[str], str | None]:
 
 def main() -> int:
     stripped, baseline = _split_global_baseline(sys.argv[1:])
-    if stripped and stripped[0] == "render":
-        render = _load("reaperctl_render", RENDER_PATH)
-        render_args = stripped[1:]
+    if stripped and stripped[0] in {"render", "export-stems"}:
+        command = stripped[0]
+        path = RENDER_PATH if command == "render" else STEMS_PATH
+        module = _load(f"reaperctl_{command.replace('-', '_')}", path)
+        command_args = stripped[1:]
         if baseline is not None:
-            render_args = ["--baseline", baseline, *render_args]
-        return int(render.main(render_args))
+            command_args = ["--baseline", baseline, *command_args]
+        return int(module.main(command_args))
     return int(_core.main())
 
 
