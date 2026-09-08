@@ -6,6 +6,7 @@ on:
       - main
       - development/reaperctl
       - mutable-restrictions-lifted
+      - full-os-mutable-layer
   pull_request:
 
 permissions:
@@ -21,6 +22,9 @@ jobs:
       - name: Verify secure mutable continuation policy
         if: github.ref_name == 'mutable-restrictions-lifted'
         run: bash scripts/verify-mutability.sh
+      - name: Verify secure full OS mutable-layer policy
+        if: github.ref_name == 'full-os-mutable-layer'
+        run: bash scripts/verify-os-mutability.sh
       - name: Compile control-plane tools
         run: |
           python3 -m py_compile bin/reaperctl
@@ -36,8 +40,9 @@ jobs:
           python3 -m py_compile scripts/reaper-restore.py
           python3 -m py_compile scripts/reaper-mutate.py
           python3 -m py_compile scripts/reaper-rollback.py
+          python3 -m py_compile scripts/os-mutation-policy.py
           python3 -m py_compile recovery/workspace/desktop_shell.py
-          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
@@ -54,5 +59,9 @@ jobs:
           bin/reaperctl mutate pan-drums --help >/dev/null
           bin/reaperctl mutate align-drums --help >/dev/null
           bin/reaperctl rollback --help >/dev/null
+          if [ "${GITHUB_REF_NAME}" = "full-os-mutable-layer" ]; then
+            python3 scripts/os-mutation-policy.py path /usr/local/bin/tool --json >/dev/null
+            python3 scripts/os-mutation-policy.py package cmake --json >/dev/null
+          fi
       - name: Run static reaperctl health gate
         run: bin/reaperctl health --static --json
