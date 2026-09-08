@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
-  "branch": "mutable-restrictions-lifted",
-  "base_commit": "e02dc54838b2b9dc1629b137b54ccbd5d997aeb4",
+  "schema_version": 2,
+  "branch": "full-os-mutable-layer",
+  "parent_branch": "mutable-restrictions-lifted",
+  "base_commit": "38cfea3c20227500e0db571f72a0d788ceac2705",
   "mode": "secure_mutable_continuation",
   "mutable_surfaces": {
     "continuation_project_state": true,
@@ -9,7 +10,15 @@
     "virtual_apollo_runtime_state": true,
     "desktop_session_configuration": true,
     "derived_audio_outputs": true,
-    "scripts_and_dsp": true
+    "scripts_and_dsp": true,
+    "os_application_layer": true,
+    "installed_package_state": true,
+    "toolchains": true,
+    "system_applications": true,
+    "desktop_components": true,
+    "environment_configuration": true,
+    "service_process_supervision": true,
+    "workspace_system_configuration": true
   },
   "mutation_policy": {
     "in_place_updates_allowed": true,
@@ -19,7 +28,84 @@
     "atomic_replace_required": true,
     "postwrite_hash_required": true,
     "rollback_artifact_required": true,
+    "system_change_manifest_required": true,
+    "package_transaction_log_required": true,
+    "pretransaction_package_inventory_required": true,
+    "posttransaction_package_inventory_required": true,
     "silent_mutation_allowed": false
+  },
+  "os_mutable_layer": {
+    "raw_mutable_path_prefixes": [
+      "/usr/local",
+      "/opt",
+      "/etc/profile.d",
+      "/etc/systemd/system",
+      "/etc/supervisor/conf.d",
+      "/etc/xdg",
+      "/mnt/data/ubuntu-desktop-workspace",
+      "/mnt/data/graphics-workspace",
+      "/mnt/data/virtual-apollo"
+    ],
+    "raw_mutable_exact_paths": [
+      "/etc/environment"
+    ],
+    "package_state_mutable": true,
+    "package_owned_files_outside_raw_roots_via_verified_transaction_only": true,
+    "admitted_package_manager": "apt",
+    "package_signature_verification_required": true,
+    "package_repository_metadata_verification_required": true,
+    "package_service_autostart_allowed": false,
+    "package_kernel_or_bootloader_changes_allowed": false,
+    "blocked_package_prefixes": [
+      "linux-image",
+      "linux-headers",
+      "linux-modules",
+      "linux-generic",
+      "grub",
+      "shim",
+      "systemd-boot"
+    ],
+    "blocked_core_packages": [
+      "apt",
+      "dpkg",
+      "base-files",
+      "bash",
+      "dash",
+      "coreutils",
+      "libc6",
+      "passwd",
+      "sudo",
+      "systemd",
+      "udev",
+      "util-linux"
+    ],
+    "protected_path_prefixes": [
+      "/boot",
+      "/lib/modules",
+      "/usr/lib/modules",
+      "/etc/apt/trusted.gpg.d",
+      "/etc/apt/keyrings",
+      "/etc/pam.d",
+      "/etc/security",
+      "/etc/ssh",
+      "/root/.ssh",
+      "/etc/ssl/private"
+    ],
+    "protected_exact_paths": [
+      "/etc/passwd",
+      "/etc/shadow",
+      "/etc/group",
+      "/etc/gshadow",
+      "/etc/sudoers",
+      "/etc/resolv.conf",
+      "/mnt/data/ubuntu-desktop-workspace/apps/REAPER/reaper"
+    ],
+    "service_definition_changes_allowed": true,
+    "service_enablement_requires_explicit_transaction": true,
+    "new_network_listener_requires_explicit_security_review": true,
+    "environment_changes_allowed": true,
+    "toolchain_installation_allowed": true,
+    "application_installation_allowed": true
   },
   "security_invariants": {
     "path_traversal_allowed": false,
@@ -30,11 +116,22 @@
     "golden_master_record_modification_allowed": false,
     "recovery_authority_modification_allowed": false,
     "license_or_evaluation_bypass_allowed": false,
-    "unverified_external_payload_execution_allowed": false
+    "unverified_external_payload_execution_allowed": false,
+    "kernel_or_bootloader_modification_allowed": false,
+    "authentication_database_modification_allowed": false,
+    "privilege_policy_modification_allowed": false,
+    "package_signature_bypass_allowed": false,
+    "trusted_package_keyring_modification_allowed": false,
+    "security_policy_weakening_allowed": false,
+    "implicit_network_listener_enablement_allowed": false
   },
   "candidate_boundary": {
     "baseline_lock_changes_require_candidate": true,
     "runtime_binary_change_requires_candidate": true,
+    "kernel_or_bootloader_change_requires_candidate": true,
+    "authentication_or_privilege_change_requires_candidate": true,
+    "package_trust_root_change_requires_candidate": true,
+    "new_network_listener_requires_candidate": true,
     "promotion_requires_explicit_owner_approval": true
   }
 }
