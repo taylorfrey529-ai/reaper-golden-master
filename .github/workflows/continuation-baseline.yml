@@ -34,6 +34,7 @@ jobs:
           python3 -m py_compile scripts/reaper-snapshot.py
           python3 -m py_compile scripts/reaper-backup.py
           python3 -m py_compile scripts/reaper-restore.py
+          python3 -m py_compile scripts/reaper-mutate.py
           python3 -m py_compile recovery/workspace/desktop_shell.py
           bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh
       - name: Run reaperctl unit tests
@@ -48,5 +49,8 @@ jobs:
           bin/reaperctl snapshot --help >/dev/null
           bin/reaperctl backup --help >/dev/null
           bin/reaperctl restore --help >/dev/null
+          bin/reaperctl mutate --help >/dev/null
+          bin/reaperctl mutate pan-drums --help >/dev/null
+          bin/reaperctl mutate align-drums --help >/dev/null
       - name: Run static reaperctl health gate
         run: bin/reaperctl health --static --json
