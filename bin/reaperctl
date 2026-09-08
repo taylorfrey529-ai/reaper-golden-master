@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CORE_PATH = ROOT / "bin" / "reaperctl-core"
 RENDER_PATH = ROOT / "scripts" / "reaper-render.py"
 STEMS_PATH = ROOT / "scripts" / "reaper-export-stems.py"
+ALIGN_PATH = ROOT / "scripts" / "reaper-align-drums.py"
 
 
 def _load(name: str, path: Path):
@@ -27,7 +28,6 @@ def _load(name: str, path: Path):
 
 _core = _load("reaperctl_core", CORE_PATH)
 
-# Preserve the proven public Python surface for existing tests and integrations.
 for _name, _value in vars(_core).items():
     if not _name.startswith("__"):
         globals().setdefault(_name, _value)
@@ -56,10 +56,14 @@ def _split_global_baseline(argv: list[str]) -> tuple[list[str], str | None]:
 
 def main() -> int:
     stripped, baseline = _split_global_baseline(sys.argv[1:])
-    if stripped and stripped[0] in {"render", "export-stems"}:
+    commands = {
+        "render": RENDER_PATH,
+        "export-stems": STEMS_PATH,
+        "align-drums": ALIGN_PATH,
+    }
+    if stripped and stripped[0] in commands:
         command = stripped[0]
-        path = RENDER_PATH if command == "render" else STEMS_PATH
-        module = _load(f"reaperctl_{command.replace('-', '_')}", path)
+        module = _load(f"reaperctl_{command.replace('-', '_')}", commands[command])
         command_args = stripped[1:]
         if baseline is not None:
             command_args = ["--baseline", baseline, *command_args]
