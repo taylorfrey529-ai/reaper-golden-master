@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "repository": "taylorfrey529-ai/reaper-golden-master",
+  "role": "active continuation repository",
+  "baseline": {
+    "golden_master": "GM-2026-09-08",
+    "golden_master_id": "sha256:74a13a11fe232bca5bd8a320d11ee0c2e17ce5c2e53d76c74ee9714276a95b1f",
+    "payload_bytes": 888467386,
+    "recovery_authority_repository": "taylorfrey529-ai/reaper-is-free",
+    "recovery_authority_proof_head": "6b76608974737e0b59818db94ecbc21018615794",
+    "golden_master_admission_commit": "6cd104cbf70237be473b7eda5dca058dcd182069",
+    "source_config_snapshot_sha256": "be32a0d06c9836b8bdbba56d01e98fd8fe0c1adb705bb54b473780f24805beac",
+    "full_workspace_backup_sha256": "c67b69e513484e0a5870bd7f55a34a280b3b771b7a5b825cc9ef5bfb932bb31a"
+  },
+  "continuity_locks": {
+    "reaper": "7.79 Linux x86_64",
+    "desktop": "X11 / Openbox",
+    "display": ":88",
+    "audio_backend": "ALSA",
+    "linux_audio_mode": 1,
+    "interface": "apollo_spdif",
+    "spdif_input_channels": 2,
+    "spdif_output_channels": 2,
+    "sample_rate_hz": 48000,
+    "buffer_samples": 256,
+    "buffer_count": 3,
+    "project": "ASIO-Routing-Project",
+    "tempo_bpm": 120,
+    "time_signature": "4/4"
+  },
+  "policy": {
+    "baseline_is_immutable": true,
+    "silent_regression_allowed": false,
+    "runtime_change_requires_new_candidate": true,
+    "golden_master_promotion_requires_explicit_verification": true
+  }
+}
