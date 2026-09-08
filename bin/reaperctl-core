@@ -1,0 +1,491 @@
+#!/usr/bin/env python3
+"""Deterministic control-plane CLI for the Reaper Golden Master continuation."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_BASELINE = REPO_ROOT / "BASELINE.json"
+
+EXPECTED_GM_ID = "sha256:74a13a11fe232bca5bd8a320d11ee0c2e17ce5c2e53d76c74ee9714276a95b1f"
+EXPECTED_PROOF_HEAD = "6b76608974737e0b59818db94ecbc21018615794"
+EXPECTED_PAYLOAD_BYTES = 888_467_386
+EXPECTED_LOCKS = {
+    "linux_audio_mode": 1,
+    "interface": "apollo_spdif",
+    "spdif_input_channels": 2,
+    "spdif_output_channels": 2,
+    "sample_rate_hz": 48000,
+    "buffer_samples": 256,
+    "buffer_count": 3,
+    "project": "ASIO-Routing-Project",
+    "tempo_bpm": 120,
+    "time_signature": "4/4",
+}
+
+REAPER_ACTION_PLAY = 1007
+REAPER_ACTION_STOP = 1016
+PLAYING_STATES = {1, 5}
+STOPPED_STATE = 0
+
+
+@dataclass(frozen=True)
+class Check:
+    name: str
+    ok: bool
+    detail: str
+
+
+@dataclass(frozen=True)
+class TransportState:
+    playstate: int
+    position_seconds: float
+    repeat: bool
+    position_string: str
+    position_beats: str
+
+    @property
+    def label(self) -> str:
+        return {
+            0: "stopped",
+            1: "playing",
+            2: "paused",
+            5: "recording",
+            6: "record_paused",
+        }.get(self.playstate, f"unknown:{self.playstate}")
+
+
+def load_baseline(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"baseline file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid baseline JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("baseline root must be a JSON object")
+    return data
+
+
+def static_checks(data: dict[str, Any]) -> list[Check]:
+    baseline = data.get("baseline") if isinstance(data.get("baseline"), dict) else {}
+    locks = data.get("continuity_locks") if isinstance(data.get("continuity_locks"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    checks = [
+        Check("schema_version", data.get("schema_version") == 1, f"value={data.get('schema_version')!r}"),
+        Check("golden_master_id", baseline.get("golden_master_id") == EXPECTED_GM_ID, f"value={baseline.get('golden_master_id')!r}"),
+        Check("payload_bytes", baseline.get("payload_bytes") == EXPECTED_PAYLOAD_BYTES, f"value={baseline.get('payload_bytes')!r}"),
+        Check("recovery_authority_proof_head", baseline.get("recovery_authority_proof_head") == EXPECTED_PROOF_HEAD, f"value={baseline.get('recovery_authority_proof_head')!r}"),
+    ]
+    bad_locks = {key: {"actual": locks.get(key), "expected": value} for key, value in EXPECTED_LOCKS.items() if locks.get(key) != value}
+    checks.append(Check("continuity_locks", not bad_locks, "all canonical locks match" if not bad_locks else json.dumps(bad_locks, sort_keys=True)))
+    policy_ok = (
+        policy.get("baseline_is_immutable") is True
+        and policy.get("silent_regression_allowed") is False
+        and policy.get("runtime_change_requires_new_candidate") is True
+        and policy.get("golden_master_promotion_requires_explicit_verification") is True
+    )
+    checks.append(Check("continuation_policy", policy_ok, "immutable baseline / explicit promotion required"))
+    return checks
+
+
+def workspace_paths(data: dict[str, Any]) -> dict[str, Any]:
+    locks = data["continuity_locks"]
+    workspace = Path(os.environ.get("REAPER_GM_WORKSPACE_ROOT", "/mnt/data/ubuntu-desktop-workspace"))
+    apollo = Path(os.environ.get("REAPER_GM_VIRTUAL_APOLLO_ROOT", "/mnt/data/virtual-apollo"))
+    project = Path(os.environ.get("REAPER_GM_PROJECT", str(workspace / "projects" / "ASIO-Routing-Project" / "ASIO-Routing-Project.RPP")))
+    reaper = Path(os.environ.get("REAPER_GM_REAPER_BINARY", str(workspace / "apps" / "REAPER" / "reaper")))
+    apollo_status = Path(os.environ.get("REAPER_GM_APOLLO_STATUS", str(apollo / "status-apollo.sh")))
+    resource = Path(os.environ.get("REAPER_GM_REAPER_RESOURCE", str(workspace / "config" / "REAPER")))
+    display = os.environ.get("REAPER_GM_DISPLAY", str(locks.get("display", ":88")))
+    return {
+        "workspace": workspace,
+        "apollo": apollo,
+        "project": project,
+        "reaper": reaper,
+        "apollo_status": apollo_status,
+        "resource": resource,
+        "reaper_ini": resource / "reaper.ini",
+        "display": display,
+    }
+
+
+def _path_check(name: str, path: Path, kind: str) -> Check:
+    return Check(name, path.is_file() if kind == "file" else path.is_dir(), str(path))
+
+
+def _run_capture(command: list[str], *, env: dict[str, str] | None = None, timeout: float = 3.0) -> subprocess.CompletedProcess[str] | None:
+    try:
+        return subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, check=False, env=env)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def discover_process_pids(reaper: Path) -> list[int]:
+    pgrep = shutil.which("pgrep")
+    if pgrep is None:
+        return []
+    result = _run_capture([pgrep, "-f", str(reaper)])
+    if result is None or result.returncode != 0:
+        return []
+    pids: list[int] = []
+    for line in result.stdout.splitlines():
+        try:
+            pids.append(int(line.strip()))
+        except ValueError:
+            pass
+    return pids
+
+
+def discover_reaper_windows(display: str) -> list[dict[str, str]]:
+    xwininfo = shutil.which("xwininfo")
+    if xwininfo is None:
+        return []
+    env = os.environ.copy()
+    env["DISPLAY"] = display
+    result = _run_capture([xwininfo, "-root", "-tree"], env=env)
+    if result is None or result.returncode != 0:
+        return []
+    pattern = re.compile(r'^\s*(0x[0-9a-fA-F]+)\s+"([^"]*)"')
+    windows: list[dict[str, str]] = []
+    for line in result.stdout.splitlines():
+        match = pattern.match(line)
+        if match:
+            window_id, title = match.groups()
+            if "REAPER" in title or title == "reaper":
+                windows.append({"id": window_id, "title": title})
+    return windows
+
+
+def x11_reachable(display: str) -> bool:
+    xdpyinfo = shutil.which("xdpyinfo")
+    if xdpyinfo is None:
+        return False
+    result = _run_capture([xdpyinfo, "-display", display])
+    return result is not None and result.returncode == 0
+
+
+def normalize_web_url(value: str) -> str:
+    value = value.strip().rstrip("/")
+    if not value:
+        raise ValueError("empty REAPER Web Interface URL")
+    if "://" not in value:
+        value = "http://" + value
+    parsed = urllib.parse.urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.port is None:
+        raise ValueError(f"invalid REAPER Web Interface URL: {value!r}")
+    return value
+
+
+def is_loopback_web_url(url: str) -> bool:
+    return urllib.parse.urlparse(url).hostname in {"127.0.0.1", "localhost", "::1"}
+
+
+def discover_web_url_from_ini(path: Path) -> str | None:
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        if not re.match(r"^csurf_\d+=", line):
+            continue
+        _, raw = line.split("=", 1)
+        try:
+            fields = shlex.split(raw)
+        except ValueError:
+            continue
+        if len(fields) < 3 or fields[0] != "HTTP":
+            continue
+        try:
+            port = int(fields[2])
+        except ValueError:
+            continue
+        if 1 <= port <= 65535:
+            return f"http://127.0.0.1:{port}"
+    return None
+
+
+def resolve_web_url(explicit: str | None, reaper_ini: Path) -> tuple[str | None, str]:
+    if explicit:
+        return normalize_web_url(explicit), "argument"
+    env_value = os.environ.get("REAPERCTL_WEB_URL")
+    if env_value:
+        return normalize_web_url(env_value), "environment"
+    discovered = discover_web_url_from_ini(reaper_ini)
+    if discovered:
+        return discovered, "reaper.ini"
+    return None, "unconfigured"
+
+
+def web_request(base_url: str, command: str, *, timeout: float = 1.5) -> str:
+    encoded = urllib.parse.quote(command, safe="/_-")
+    url = f"{base_url.rstrip('/')}/_/{encoded}"
+    request = urllib.request.Request(url, headers={"User-Agent": "reaperctl/0.2"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise RuntimeError(f"REAPER Web Interface request failed: {exc}") from exc
+
+
+def parse_transport_response(text: str) -> TransportState:
+    for line in text.splitlines():
+        fields = line.split("\t")
+        if fields and fields[0] == "TRANSPORT":
+            if len(fields) < 6:
+                raise ValueError(f"malformed TRANSPORT response: {line!r}")
+            try:
+                return TransportState(int(fields[1]), float(fields[2]), bool(int(fields[3])), fields[4], fields[5])
+            except ValueError as exc:
+                raise ValueError(f"invalid TRANSPORT response: {line!r}") from exc
+    raise ValueError("TRANSPORT response missing")
+
+
+def query_transport(base_url: str, *, timeout: float = 1.5) -> TransportState:
+    return parse_transport_response(web_request(base_url, "TRANSPORT", timeout=timeout))
+
+
+def _target_met(state: TransportState, target: str) -> bool:
+    if target == "play":
+        return state.playstate in PLAYING_STATES
+    if target == "stop":
+        return state.playstate == STOPPED_STATE
+    raise ValueError(f"unknown transport target: {target}")
+
+
+def drive_transport(base_url: str, target: str, *, timeout: float = 2.0, poll_interval: float = 0.05) -> dict[str, Any]:
+    before = query_transport(base_url, timeout=min(timeout, 1.5))
+    if _target_met(before, target):
+        state = asdict(before) | {"label": before.label}
+        return {"target": target, "changed": False, "confirmed": True, "action_id": None, "before": state, "after": state}
+    action_id = REAPER_ACTION_PLAY if target == "play" else REAPER_ACTION_STOP
+    web_request(base_url, str(action_id), timeout=min(timeout, 1.5))
+    deadline = time.monotonic() + timeout
+    last = before
+    while time.monotonic() < deadline:
+        last = query_transport(base_url, timeout=min(max(deadline - time.monotonic(), 0.1), 1.5))
+        if _target_met(last, target):
+            return {
+                "target": target,
+                "changed": True,
+                "confirmed": True,
+                "action_id": action_id,
+                "before": asdict(before) | {"label": before.label},
+                "after": asdict(last) | {"label": last.label},
+            }
+        time.sleep(poll_interval)
+    raise RuntimeError(f"transport command {target!r} was sent as action {action_id}, but state confirmation timed out at {last.label}")
+
+
+def session_report(data: dict[str, Any], explicit_web_url: str | None = None, allow_remote: bool = False) -> dict[str, Any]:
+    paths = workspace_paths(data)
+    pids = discover_process_pids(paths["reaper"])
+    reachable = x11_reachable(paths["display"])
+    windows = discover_reaper_windows(paths["display"]) if reachable else []
+    canonical_title = next((w["title"] for w in windows if "ASIO-Routing-Project" in w["title"] and "REAPER v7.79" in w["title"]), None)
+    web_url, web_source = resolve_web_url(explicit_web_url, paths["reaper_ini"])
+    transport: dict[str, Any] | None = None
+    transport_error: str | None = None
+    if web_url:
+        if not allow_remote and not is_loopback_web_url(web_url):
+            transport_error = "remote REAPER Web Interface endpoint refused without --allow-remote-web"
+        else:
+            try:
+                state = query_transport(web_url)
+                transport = asdict(state) | {"label": state.label}
+            except (RuntimeError, ValueError) as exc:
+                transport_error = str(exc)
+    core_ok = all([paths["workspace"].is_dir(), paths["apollo"].is_dir(), paths["project"].is_file(), paths["reaper"].is_file(), bool(pids), reachable, canonical_title is not None])
+    return {
+        "ok": core_ok,
+        "workspace": str(paths["workspace"]),
+        "virtual_apollo": str(paths["apollo"]),
+        "project": str(paths["project"]),
+        "reaper_binary": str(paths["reaper"]),
+        "reaper_resource": str(paths["resource"]),
+        "reaper_pids": pids,
+        "display": paths["display"],
+        "x11_reachable": reachable,
+        "windows": windows,
+        "canonical_window_title": canonical_title,
+        "web": {"url": web_url, "source": web_source, "transport_ready": transport is not None, "transport": transport, "error": transport_error},
+    }
+
+
+def live_checks(data: dict[str, Any]) -> list[Check]:
+    paths = workspace_paths(data)
+    report = session_report(data)
+    return [
+        _path_check("workspace_root", paths["workspace"], "dir"),
+        _path_check("virtual_apollo_root", paths["apollo"], "dir"),
+        _path_check("canonical_project", paths["project"], "file"),
+        _path_check("reaper_binary", paths["reaper"], "file"),
+        _path_check("apollo_status_script", paths["apollo_status"], "file"),
+        Check("x11_display", report["x11_reachable"], f"display={paths['display']}"),
+        Check("reaper_process", bool(report["reaper_pids"]), str(paths["reaper"])),
+        Check("canonical_reaper_window", report["canonical_window_title"] is not None, report["canonical_window_title"] or "canonical REAPER project window not found"),
+    ]
+
+
+def render_checks(checks: list[Check], as_json: bool, scope: str) -> int:
+    ok = all(check.ok for check in checks)
+    if as_json:
+        print(json.dumps({"scope": scope, "ok": ok, "checks": [asdict(check) for check in checks]}, indent=2))
+    else:
+        print(f"reaperctl health [{scope}]")
+        for check in checks:
+            print(f"{'PASS' if check.ok else 'FAIL':4}  {check.name}: {check.detail}")
+        print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+def cmd_baseline(args: argparse.Namespace, data: dict[str, Any]) -> int:
+    checks = static_checks(data)
+    if not all(check.ok for check in checks):
+        return render_checks(checks, args.json, "baseline")
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        baseline = data["baseline"]
+        locks = data["continuity_locks"]
+        print(f"Golden Master: {baseline['golden_master']}")
+        print(f"Golden Master ID: {baseline['golden_master_id']}")
+        print(f"Recovery authority proof head: {baseline['recovery_authority_proof_head']}")
+        print(f"Audio lock: {locks['interface']} / {locks['sample_rate_hz']} Hz / {locks['buffer_samples']} samples x {locks['buffer_count']} / {locks['spdif_input_channels']} in / {locks['spdif_output_channels']} out")
+    return 0
+
+
+def cmd_health(args: argparse.Namespace, data: dict[str, Any]) -> int:
+    checks = static_checks(data)
+    scope = "static"
+    if not args.static:
+        checks.extend(live_checks(data))
+        scope = "live"
+    return render_checks(checks, args.json, scope)
+
+
+def cmd_session(args: argparse.Namespace, data: dict[str, Any]) -> int:
+    checks = static_checks(data)
+    if not all(check.ok for check in checks):
+        return render_checks(checks, args.json, "baseline")
+    try:
+        report = session_report(data, args.web_url, args.allow_remote_web)
+    except ValueError as exc:
+        print(f"reaperctl: {exc}", file=sys.stderr)
+        return 2
+    report["ok"] = report["ok"] and (not args.require_transport or report["web"]["transport_ready"])
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        print(f"REAPER session: {'READY' if report['ok'] else 'NOT READY'}")
+        print(f"Project window: {report['canonical_window_title'] or 'not found'}")
+        print(f"REAPER PIDs: {', '.join(map(str, report['reaper_pids'])) or 'none'}")
+        print(f"X11: {report['display']} ({'reachable' if report['x11_reachable'] else 'unreachable'})")
+        web = report["web"]
+        print(f"Web control: {web['url'] or 'unconfigured'} ({web['source']})")
+        if web["transport"]:
+            print(f"Transport: {web['transport']['label']} @ {web['transport']['position_seconds']:.3f}s")
+        elif web["error"]:
+            print(f"Transport: unavailable ({web['error']})")
+    return 0 if report["ok"] else 1
+
+
+def cmd_transport(args: argparse.Namespace, data: dict[str, Any], target: str) -> int:
+    checks = static_checks(data)
+    if not all(check.ok for check in checks):
+        return render_checks(checks, args.json, "baseline")
+    try:
+        report = session_report(data, args.web_url, args.allow_remote_web)
+    except ValueError as exc:
+        print(f"reaperctl: {exc}", file=sys.stderr)
+        return 2
+    if not report["ok"]:
+        print("reaperctl: canonical live REAPER session not ready", file=sys.stderr)
+        return 3
+    web_url = report["web"]["url"]
+    if web_url is None:
+        print("reaperctl: REAPER Web Interface is not configured; set REAPERCTL_WEB_URL or add a REAPER Web browser control surface", file=sys.stderr)
+        return 3
+    if not args.allow_remote_web and not is_loopback_web_url(web_url):
+        print("reaperctl: refusing non-loopback REAPER Web Interface without --allow-remote-web", file=sys.stderr)
+        return 3
+    try:
+        result = drive_transport(web_url, target, timeout=args.timeout)
+    except (RuntimeError, ValueError) as exc:
+        print(f"reaperctl: {exc}", file=sys.stderr)
+        return 4
+    result["web_url"] = web_url
+    result["session_window"] = report["canonical_window_title"]
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Transport {target}: CONFIRMED ({'changed' if result['changed'] else 'already satisfied'})")
+        print(f"Before: {result['before']['label']} @ {result['before']['position_seconds']:.3f}s")
+        print(f"After:  {result['after']['label']} @ {result['after']['position_seconds']:.3f}s")
+        print(f"Endpoint: {web_url}")
+    return 0
+
+
+def add_web_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--web-url", help="REAPER Web Interface base URL; otherwise REAPERCTL_WEB_URL or reaper.ini is used")
+    parser.add_argument("--allow-remote-web", action="store_true", help="Allow a non-loopback REAPER Web Interface endpoint")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="reaperctl", description=__doc__)
+    parser.add_argument("--baseline", type=Path, default=Path(os.environ.get("REAPERCTL_BASELINE", DEFAULT_BASELINE)), help="Path to BASELINE.json (default: repository BASELINE.json)")
+    sub = parser.add_subparsers(dest="command", required=True)
+    baseline = sub.add_parser("baseline", help="Show and validate the admitted Golden Master baseline")
+    baseline.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    health = sub.add_parser("health", help="Validate baseline continuity and optionally the live REAPER workspace")
+    health.add_argument("--static", action="store_true", help="Check repository/baseline state only")
+    health.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    session = sub.add_parser("session", help="Discover the canonical live REAPER session and control endpoint")
+    session.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    session.add_argument("--require-transport", action="store_true", help="Fail unless the Web transport endpoint responds")
+    add_web_arguments(session)
+    for name in ("play", "stop"):
+        transport = sub.add_parser(name, help=f"Drive REAPER transport to {name} and confirm the resulting state")
+        transport.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+        transport.add_argument("--timeout", type=float, default=2.0, help="Seconds allowed for state confirmation")
+        add_web_arguments(transport)
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    try:
+        data = load_baseline(args.baseline)
+    except ValueError as exc:
+        print(f"reaperctl: {exc}", file=sys.stderr)
+        return 2
+    if args.command == "baseline":
+        return cmd_baseline(args, data)
+    if args.command == "health":
+        return cmd_health(args, data)
+    if args.command == "session":
+        return cmd_session(args, data)
+    if args.command == "play":
+        return cmd_transport(args, data, "play")
+    if args.command == "stop":
+        return cmd_transport(args, data, "stop")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

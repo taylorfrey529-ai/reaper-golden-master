@@ -20,7 +20,9 @@ jobs:
       - name: Compile control-plane tools
         run: |
           python3 -m py_compile bin/reaperctl
+          python3 -m py_compile bin/reaperctl-core
           python3 -m py_compile scripts/configure-web-control.py
+          python3 -m py_compile scripts/reaper-render.py
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Run static reaperctl health gate

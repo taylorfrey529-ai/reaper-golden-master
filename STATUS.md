@@ -1,6 +1,6 @@
 # Continuation Status
 
-Current state: **active development — reaperctl transport live-verified**
+Current state: **active development — transport and verified render live-tested**
 
 ```text
 Repository: taylorfrey529-ai/reaper-golden-master
@@ -11,35 +11,34 @@ Recovery authority: taylorfrey529-ai/reaper-is-free
 Recovery authority proof head: 6b76608974737e0b59818db94ecbc21018615794
 ```
 
-Implemented and verified on the development branch:
+Live-verified continuation capabilities:
 
-- baseline and continuity-lock validation;
-- static and live health checks;
-- deterministic REAPER process/X11/window session discovery;
-- REAPER Web Interface endpoint discovery;
-- reproducible, backup-first Web control-surface admission;
-- `TRANSPORT` state parsing;
-- idempotent, state-confirmed `play` and `stop` transport primitives;
-- non-loopback Web endpoint refusal by default;
-- unit tests using a fake REAPER Web Interface;
-- live transport verification against the canonical REAPER 7.79 workspace.
+- immutable baseline and continuity-lock verification;
+- live REAPER/X11/project session discovery;
+- reproducible Web-control admission;
+- state-confirmed `play` / `stop`;
+- verified offline `render` through a temporary project copy;
+- explicit 48 kHz / stereo / 24-bit PCM render contract;
+- output SHA-256, duration, frame count, and non-silence verification;
+- canonical project byte-preservation before/after render.
 
-Live result on 2026-09-08:
+## Latest live render
 
 ```text
-REAPER PID after controlled restart: 3711
-Display: :88
-Project: ASIO-Routing-Project
-Web endpoint used: http://127.0.0.1:2307
-Initial: stopped / playstate=0 / 0.000000s
-Play: confirmed / action 1007 / playstate=1
-Independent advancing read: 0.501333s
-Stop: confirmed / action 1016 / playstate=0
-Final: stopped / 0.000000s
+Output: /mnt/data/reaperctl-renders/ASIO-Routing-Project-reaperctl-live-48k.wav
+Bytes: 4608690
+SHA-256: 44ef543f74070a04b65690487ba0bb65638be0926c43935a8a4f3548f09041cd
+Format: PCM WAV, 24-bit, stereo, 48000 Hz
+Frames: 768000
+Duration: 16.000000 s
+Non-silent: yes
+Canonical project SHA before/after:
+2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1
+Temporary RPP leftovers: none
 ```
 
-The canonical project hash remained unchanged across restart. The legitimate REAPER evaluation/About dialog remained present.
+An earlier exploratory render produced 44.1 kHz and was rejected from admission. The current implementation forces and verifies 48 kHz.
 
-Hardening note: REAPER itself was observed listening on `0.0.0.0:2307`. The CLI only admits loopback URLs by default, but server-side all-interface binding is a known hardening item rather than a claimed loopback-only property.
+Network hardening note remains: REAPER's Web Interface was observed bound to `0.0.0.0:2307`; `reaperctl` itself uses/refuses endpoints conservatively, but the server binding is not claimed to be loopback-only.
 
-Next production increment: deterministic `render` / `export-stems` with output verification.
+Next production increment: deterministic `export-stems` with per-file output verification.

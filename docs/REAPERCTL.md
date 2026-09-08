@@ -2,90 +2,70 @@
 
 `reaperctl` is the deterministic control-plane CLI for the Reaper Golden Master continuation.
 
-The control plane validates the immutable `GM-2026-09-08` baseline before it observes or drives the live DAW. Transport control is state-confirmed through REAPER's Web Interface rather than keyboard toggles.
+The control plane validates the immutable `GM-2026-09-08` baseline before it observes or drives the live DAW. Transport and production actions are admitted only when their resulting state or output bytes can be verified.
 
 ## Commands
 
 ```bash
 bin/reaperctl baseline
-bin/reaperctl baseline --json
 bin/reaperctl health --static
 bin/reaperctl health --json
-bin/reaperctl session
 bin/reaperctl session --json
 bin/reaperctl session --require-transport
-bin/reaperctl play
 bin/reaperctl play --json
-bin/reaperctl stop
 bin/reaperctl stop --json
+bin/reaperctl render --output /absolute/path/mix.wav --json
 ```
 
-## Session discovery
+## Session and transport
 
-`session` resolves and reports:
+`session` discovers the canonical workspace, Virtual Apollo roots, REAPER process, X11 display `:88`, canonical project window, and REAPER Web Interface endpoint. `play` and `stop` use state-confirmed REAPER Web Interface actions (`1007` and `1016`) and are idempotent.
 
-- canonical workspace and Virtual Apollo roots;
-- `ASIO-Routing-Project.RPP`;
-- REAPER binary and process IDs;
-- X11 display `:88`;
-- REAPER windows discovered from X11;
-- the canonical `ASIO-Routing-Project - REAPER v7.79` window;
-- a REAPER Web Interface endpoint when one is explicitly supplied, set in the environment, or discoverable from `reaper.ini`;
-- live `TRANSPORT` state when the endpoint responds.
+The Web endpoint is resolved from `--web-url`, `REAPERCTL_WEB_URL`, or the active `reaper.ini`. Non-loopback endpoint URLs are refused unless `--allow-remote-web` is explicit.
 
-`session` succeeds when the canonical live session is found even if Web transport is not configured. `session --require-transport` also requires a responding Web endpoint.
+## Render
 
-## Deterministic transport
+`render` performs a verified offline render without changing the canonical project.
 
-`play` and `stop` use REAPER Web Interface commands and confirm the resulting `TRANSPORT` state.
+```bash
+bin/reaperctl render \
+  --output /mnt/data/reaperctl-renders/ASIO-Routing-Project.wav \
+  --json
+```
 
-- Play action ID: `1007`.
-- Stop action ID: `1016`.
-- `play` is idempotent: if REAPER already reports playing/recording, no action is sent.
-- `stop` is idempotent: if REAPER already reports stopped, no action is sent.
-- After an action is sent, `reaperctl` polls `TRANSPORT` until the target state is confirmed or the timeout expires.
-- No success is reported from request delivery alone.
+The initial admitted render contract is deliberately narrow:
 
-The Web endpoint is resolved in this order:
+```text
+container: WAV
+encoding: PCM
+sample rate: 48000 Hz
+channels: 2
+sample width: 24 bit
+bounds: entire project
+```
 
-1. `--web-url`;
-2. `REAPERCTL_WEB_URL`;
-3. the first `csurf_N=HTTP ...` entry found in the active REAPER resource `reaper.ini`.
+The command validates the baseline, hashes the canonical RPP, refuses an existing target unless `--overwrite` is explicit, creates a temporary RPP in the canonical project directory, forces an absolute `RENDER_FILE`, empty `RENDER_PATTERN`, `RENDER_FMT 0 2 48000`, and entire-project bounds, invokes the actual REAPER 7.79 binary with `-newinst -nosplash -renderproject`, removes the temporary RPP, verifies the output format/duration/non-silence/SHA-256, and hashes the canonical project again. Any canonical-project byte change is a failure.
 
-Non-loopback endpoint URLs are rejected unless `--allow-remote-web` is explicitly supplied.
+A first exploratory render that inherited the prior render settings produced 44.1 kHz and was **rejected**. The admitted implementation explicitly forces 48 kHz and has a unit test that rejects 44.1 kHz output.
+
+`render` currently accepts `.wav` only. Other formats should be added as separate verified continuation increments rather than inferred from filenames or REAPER defaults.
 
 ## Web control admission
 
-The continuation carries a reproducible configuration helper:
+`scripts/configure-web-control.py` safely admits the continuation Web surface. It is backup-first, idempotent, preserves non-HTTP surfaces, refuses a conflicting HTTP surface, and refuses to write while the specified REAPER binary is running.
 
-```bash
-python3 scripts/configure-web-control.py \
-  --ini /mnt/data/ubuntu-desktop-workspace/config/REAPER/reaper.ini \
-  --backup-dir /mnt/data/reaperctl-live-backups \
-  --reaper-binary /mnt/data/ubuntu-desktop-workspace/apps/REAPER/reaper
+The continuation Web surface is:
+
+```text
+csurf_0=HTTP 0 2307 '' 'index.html' 0 ''
 ```
 
-Without `--apply`, this is a check/plan operation. With `--apply`, it:
+REAPER 7.79 itself was observed listening on `0.0.0.0:2307`; therefore the server is **not** described as loopback-only. `reaperctl` targets `127.0.0.1` and refuses non-loopback URLs by default, but server-side binding remains a hardening item.
 
-- refuses an ambiguous/different existing HTTP control surface;
-- refuses to modify the INI when the specified REAPER binary is running;
-- creates a pre-change backup first;
-- adds the standard continuation surface `csurf_N=HTTP 0 2307 '' 'index.html' 0 ''`;
-- preserves existing non-HTTP control surfaces;
-- is idempotent when the exact surface already exists;
-- reports before/after SHA-256 values and whether a restart is required.
+## Live evidence
 
-REAPER must be restarted after a newly applied Web surface so it loads the control-surface configuration.
-
-## Live verification
-
-On 2026-09-08 the canonical live workspace was restarted with the admitted Web surface on port `2307`. `session --require-transport` passed, `play` confirmed `playstate 0 → 1`, an independent `TRANSPORT` read observed the playhead at `0.501333s`, and `stop` confirmed `playstate 1 → 0` with a final independent stopped read at `0.000000s`.
-
-The canonical project SHA-256 was unchanged across the controlled restart. The legitimate REAPER evaluation/About dialog remained visible and was not bypassed or suppressed. Evidence is recorded in `evidence/LIVE-TRANSPORT-2026-09-08.md`.
-
-## Network boundary
-
-REAPER 7.79 itself was observed listening on `0.0.0.0:2307` for the Web Interface. Therefore the **server is not described as loopback-only**. `reaperctl` targets `127.0.0.1:2307` and refuses non-loopback endpoint URLs by default, but server-side interface binding remains a hardening item for any environment where the VM network is externally reachable.
+- `evidence/LIVE-TRANSPORT-2026-09-08.md` — canonical session, play and stop state transitions.
+- `evidence/LIVE-RENDER-2026-09-08.md` — actual `reaperctl render` output and byte-level verification.
 
 ## Environment overrides
 
@@ -97,27 +77,30 @@ REAPER_GM_REAPER_BINARY
 REAPER_GM_APOLLO_STATUS
 REAPER_GM_REAPER_RESOURCE
 REAPER_GM_DISPLAY
+REAPER_GM_HOME
+REAPER_GM_XDG_CONFIG_HOME
 REAPERCTL_BASELINE
 REAPERCTL_WEB_URL
 ```
 
-Overrides change where `reaperctl` looks; they do not change the immutable continuity values admitted in `BASELINE.json`.
+Overrides change where `reaperctl` looks; they do not alter the immutable baseline values.
 
 ## Exit codes
 
 ```text
-0  requested check/action completed and, for transport, target state confirmed
+0  check/action completed and resulting state/output was verified
 1  health/session requirement failed
-2  invalid baseline or command configuration
+2  invalid baseline, argument, output contract, or overwrite condition
 3  canonical live session or transport backend unavailable
-4  transport request/confirmation failed
+4  REAPER action/render execution or post-action verification failed
 ```
 
 ## Development order
 
-1. `baseline` / `health` — admission and observation. **Implemented.**
-2. `session` / `play` / `stop` — deterministic discovery and state-confirmed transport. **Implemented and live-verified.**
-3. Web control-surface admission and controlled REAPER restart. **Implemented and live-verified.**
-4. `render` / `export-stems` — production actions with output verification. **Next.**
-5. `align-drums` — invoke the admitted overhead-anchored drum workflow.
-6. `screenshot` / `snapshot` / `backup` — evidence and recovery operations.
+1. `baseline` / `health` — **implemented**.
+2. `session` / `play` / `stop` — **implemented and live-verified**.
+3. Web control admission — **implemented and live-verified**.
+4. `render` — **implemented and live-verified at 48 kHz stereo PCM**.
+5. `export-stems` — next production action.
+6. `align-drums` — admitted overhead-anchored drum workflow.
+7. `screenshot` / `snapshot` / `backup` — evidence and recovery operations.
