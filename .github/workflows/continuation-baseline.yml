@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - development/reaperctl
+      - mutable-restrictions-lifted
   pull_request:
 
 permissions:
@@ -17,6 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify inherited Golden Master baseline
         run: bash scripts/verify-baseline.sh
+      - name: Verify secure mutable continuation policy
+        if: github.ref_name == 'mutable-restrictions-lifted'
+        run: bash scripts/verify-mutability.sh
       - name: Compile control-plane tools
         run: |
           python3 -m py_compile bin/reaperctl
@@ -31,7 +35,7 @@ jobs:
           python3 -m py_compile scripts/reaper-backup.py
           python3 -m py_compile scripts/reaper-restore.py
           python3 -m py_compile recovery/workspace/desktop_shell.py
-          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
