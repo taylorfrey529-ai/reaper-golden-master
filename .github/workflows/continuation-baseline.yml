@@ -26,6 +26,9 @@ jobs:
           python3 -m py_compile scripts/reaper-export-stems.py
           python3 -m py_compile scripts/reaper-align-drums.py
           python3 -m py_compile scripts/reaper-pan-drums.py
+          python3 -m py_compile scripts/reaper-screenshot.py
+          python3 -m py_compile scripts/reaper-snapshot.py
+          python3 -m py_compile scripts/reaper-backup.py
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
@@ -34,5 +37,8 @@ jobs:
           bin/reaperctl export-stems --help >/dev/null
           bin/reaperctl align-drums --help >/dev/null
           bin/reaperctl pan-drums --help >/dev/null
+          bin/reaperctl screenshot --help >/dev/null
+          bin/reaperctl snapshot --help >/dev/null
+          bin/reaperctl backup --help >/dev/null
       - name: Run static reaperctl health gate
         run: bin/reaperctl health --static --json
