@@ -23,6 +23,7 @@ bin/reaperctl pan-drums --project /absolute/path/ASIO-Routing-Project-aligned.RP
 bin/reaperctl screenshot --output /absolute/path/reaper-live.png --json
 bin/reaperctl snapshot --screenshot /absolute/path/reaper-live.png --output /absolute/path/SNAPSHOT.json --json
 bin/reaperctl backup --snapshot /absolute/path/SNAPSHOT.json --output /absolute/path/reaper-continuation-backup.tar.gz --json
+bin/reaperctl restore --backup /absolute/path/reaper-continuation-backup.tar.gz --audio-zip /absolute/path/audio.zip --target /absolute/path/clean-target --json
 ```
 
 ## Session and transport
@@ -107,98 +108,77 @@ The first pan writer attempt was rejected because normal text I/O normalized CRL
 
 `screenshot` captures the **real X11 root display** and rejects a missing/stale GUI or blank output.
 
+Admission requires live X11 `:88` at exactly 1440x900, the canonical REAPER 7.79 evaluation window, exact REAPER runtime identity, non-uniform PNG pixels, and unchanged canonical RPP bytes before/after capture. The legitimate evaluation/license state is evidence and must not be suppressed or bypassed.
+
+## Mutable-state snapshot and deterministic backup
+
+`snapshot` creates a machine-readable mutable continuation manifest; it is **not a new Golden Master**. It inventories and hashes the canonical RPP, referenced media, project/routing files, desktop/Openbox/ALSA state, mutable REAPER configuration, Virtual Apollo implementation/configuration/device state, and optional screenshot evidence.
+
+`backup` packages a verified snapshot into deterministic `tar.gz` bytes. Every source file must still match the snapshot; archive membership, embedded snapshot identity, modes, sizes, and payload hashes are reverified. The REAPER runtime is excluded and remains bound to `GM-2026-09-08` by exact SHA-256.
+
+## Deterministic clean-target restore
+
+`restore` reconstructs a continuation into an **isolated target tree** from two authorities:
+
+1. the verified continuation backup for mutable state;
+2. the admitted Golden Master `audio.zip` for the exact REAPER 7.79 runtime.
+
 ```bash
-bin/reaperctl screenshot \
-  --output /mnt/data/reaperctl-evidence/reaper-live.png \
+bin/reaperctl restore \
+  --backup /mnt/data/reaperctl-evidence/reaper-continuation-backup-2026-09-08-r2.tar.gz \
+  --audio-zip /mnt/data/audio.zip \
+  --target /mnt/data/reaperctl-restored \
   --json
 ```
 
-Admission requires:
+Restore verification rejects path traversal, unexpected archive members, embedded snapshot tampering, member size/hash/mode drift, wrong Golden Master `audio.zip` bytes, and wrong REAPER runtime bytes. A failed restore removes the partial target.
 
-- live X11 `:88` at exactly 1440x900;
-- canonical `ASIO-Routing-Project - REAPER v7.79 - EVALUATION LICENSE` window mapped;
-- exact REAPER binary SHA `cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4`;
-- non-uniform PNG pixel validation;
-- canonical RPP SHA unchanged before/after capture.
+The first live restore rehearsal, R1, was rejected because clean restoration did not recreate an empty `assets/` directory before `desktop_shell.py` attempted to generate `wallpaper.png`; it also exposed stale-PID Xvfb lifecycle risk. R2 repaired both defects. The exact repaired desktop files are versioned under `recovery/workspace/` and locked by regression hashes.
 
-The legitimate evaluation/license state is evidence and must not be suppressed or bypassed.
+R2 live proof:
 
-## Mutable-state snapshot
+```text
+Snapshot ID:
+sha256:8067896bcf59f7e09ea66aa5227cc07026e8599638712379363d6e9b692d2f65
 
-`snapshot` creates a machine-readable continuation manifest. It is **not a new Golden Master**.
+Continuation backup SHA-256:
+a251950b052cfb0de75d2d0b7b13d1659bd35c0251fc630721246dbf0d91b0b0
 
-```bash
-bin/reaperctl snapshot \
-  --screenshot /mnt/data/reaperctl-evidence/reaper-live.png \
-  --output /mnt/data/reaperctl-evidence/SNAPSHOT.json \
-  --json
+Golden Master audio.zip SHA-256:
+093f590ba02b0284dc676d7f8ae499ead6fd93316524f7872cfa3c6fda0660bd
+
+Restored REAPER SHA-256:
+cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4
+
+Restored project SHA-256:
+2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1
 ```
 
-The snapshot inventories and hashes the canonical RPP, all media actually referenced by it, project/routing files, desktop/Openbox/ALSA state, mutable REAPER configuration, Virtual Apollo implementation/configuration/device state, and optional live screenshot evidence.
+The restored system booted on `:88` at 1440x900, regenerated the missing wallpaper asset from a clean tree, mapped the REAPER 7.79 **EVALUATION LICENSE** project window, retained all ALSA `apollo_spdif` / 48 kHz / 256x3 / 2x2 locks, and started the restored Virtual Apollo pipe sink.
 
-Ephemeral PIDs/logs, rolling Apollo ear captures, temporary production artifacts, and the REAPER runtime tree are excluded. The exact REAPER runtime is bound by SHA-256 and remains recoverable from `GM-2026-09-08`.
-
-The snapshot ID is SHA-256 over canonicalized manifest content before the `snapshot_id` field is added, so edits are detectable independently of pretty-print formatting.
-
-## Deterministic continuation backup
-
-`backup` packages a verified snapshot into a deterministic `tar.gz`.
-
-```bash
-bin/reaperctl backup \
-  --snapshot /mnt/data/reaperctl-evidence/SNAPSHOT.json \
-  --output /mnt/data/reaperctl-evidence/reaper-continuation-backup.tar.gz \
-  --json
-```
-
-Before packaging, every live source file must still match its snapshot size and SHA-256. Archive members are sorted; uid/gid/mtime are normalized; the gzip header mtime is zeroed. Verification then checks exact archive membership, the embedded snapshot ID, backup manifest identity/count, and every payload member hash.
-
-The live proof produced the same archive SHA-256 on two independent builds from the same snapshot.
+One launch-time `reaper.ini` change was observed and classified: REAPER added only `faultyproject=<canonical RPP>`. Locked ALSA fields were unchanged; this is allowed runtime drift, not a continuity regression.
 
 ## Web control admission
 
 `scripts/configure-web-control.py` safely admits the continuation Web surface. It is backup-first, idempotent, preserves non-HTTP surfaces, refuses a conflicting HTTP surface, and refuses to write while the specified REAPER binary is running.
 
-The continuation Web surface is:
-
-```text
-csurf_0=HTTP 0 2307 '' 'index.html' 0 ''
-```
-
-REAPER 7.79 itself was observed listening on `0.0.0.0:2307`; therefore the server is **not** described as loopback-only. `reaperctl` targets `127.0.0.1` and refuses non-loopback URLs by default, but server-side binding remains a hardening item.
+REAPER 7.79 itself was observed listening on `0.0.0.0:2307` when the surface was configured; therefore the server is **not** described as loopback-only. `reaperctl` targets/refuses endpoints conservatively. Web control was not part of the R1/R2 captured mutable snapshots, so it was not invented as a restore requirement.
 
 ## Live evidence
 
-- `evidence/LIVE-TRANSPORT-2026-09-08.md` — canonical session, play and stop state transitions.
-- `evidence/LIVE-RENDER-2026-09-08.md` — verified 48 kHz master render.
-- `evidence/LIVE-STEMS-2026-09-08.md` — verified native selected-track stem export.
-- `evidence/LIVE-ALIGN-DRUMS-2026-09-08.md` — verified OH-anchored shell timing alignment.
-- `evidence/LIVE-PAN-DRUMS-2026-09-08.md` — verified OH-image pan placement with byte-level pan-only diff and REAPER 7.79 read-back.
-- `evidence/LIVE-SNAPSHOT-BACKUP-2026-09-08.md` — recovery observation, real X11 screenshot proof, snapshot identity, and deterministic backup proof.
-
-## Environment overrides
-
-```text
-REAPER_GM_WORKSPACE_ROOT
-REAPER_GM_VIRTUAL_APOLLO_ROOT
-REAPER_GM_PROJECT
-REAPER_GM_REAPER_BINARY
-REAPER_GM_APOLLO_STATUS
-REAPER_GM_REAPER_RESOURCE
-REAPER_GM_DISPLAY
-REAPER_GM_HOME
-REAPER_GM_XDG_CONFIG_HOME
-REAPERCTL_BASELINE
-REAPERCTL_WEB_URL
-```
-
-Overrides change where `reaperctl` looks; they do not alter immutable baseline values.
+- `evidence/LIVE-TRANSPORT-2026-09-08.md`
+- `evidence/LIVE-RENDER-2026-09-08.md`
+- `evidence/LIVE-STEMS-2026-09-08.md`
+- `evidence/LIVE-ALIGN-DRUMS-2026-09-08.md`
+- `evidence/LIVE-PAN-DRUMS-2026-09-08.md`
+- `evidence/LIVE-SNAPSHOT-BACKUP-2026-09-08.md`
+- `evidence/LIVE-RESTORE-REHEARSAL-2026-09-08.md`
 
 ## Development order
 
 1. `baseline` / `health` — **implemented**.
 2. `session` / `play` / `stop` — **implemented and live-verified**.
-3. Web control admission — **implemented and live-verified**.
+3. Web control admission — **implemented and live-verified separately**.
 4. `render` — **implemented and live-verified at 48 kHz stereo PCM**.
 5. `export-stems` — **implemented and live-verified using native selected-track stem semantics**.
 6. `align-drums` — **implemented and live-verified with Tom 1 self-anchor continuity**.
@@ -206,4 +186,5 @@ Overrides change where `reaperctl` looks; they do not alter immutable baseline v
 8. `screenshot` — **implemented and live-verified from real X11 pixels**.
 9. `snapshot` — **implemented and live-verified as mutable-state manifest**.
 10. `backup` — **implemented and live-verified as deterministic continuation package**.
-11. continuation restore rehearsal — **next**: restore the package into a clean target over the admitted Golden Master runtime and prove byte/state equivalence.
+11. `restore` — **implemented and R2 live-verified from a clean target over the admitted Golden Master runtime**.
+12. branch review/promotion gate — **next**; technical continuation proof is complete, but `main` remains untouched pending an explicit promotion decision.
