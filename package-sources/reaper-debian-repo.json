@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "source_kind": "private_debian_repository",
+  "repository": {
+    "full_name": "taylorfrey529-ai/reaper-debian-repo",
+    "repository_id": "1362017734",
+    "visibility": "private",
+    "default_branch": "main",
+    "bound_bootstrap_commit": "57afcc6dc995aae69bec1c663a2e4885b2ddc9c0",
+    "bootstrap_ci_run_id": "34293034792",
+    "bootstrap_ci_conclusion": "success"
+  },
+  "consumer": {
+    "repository": "taylorfrey529-ai/reaper-golden-master",
+    "branch": "full-os-mutable-layer",
+    "policy": "MUTABILITY.json"
+  },
+  "compatibility": {
+    "os": "Debian GNU/Linux",
+    "release": "13",
+    "codename": "trixie",
+    "architecture": "amd64",
+    "suite": "trixie",
+    "component": "main"
+  },
+  "transport": {
+    "github_access": "authenticated_private_snapshot_sync",
+    "apt_access": "local_file_repository",
+    "local_root": "/mnt/data/reaper-apt-repository",
+    "local_uri": "file:/mnt/data/reaper-apt-repository",
+    "github_credentials_in_apt_configuration_allowed": false
+  },
+  "trust": {
+    "repository_signing_required": true,
+    "signing_key_status": "pending-admission",
+    "signing_key_fingerprint": null,
+    "signed_by_scope_required": true,
+    "trust_root_installed_on_live_os": false,
+    "trust_root_change_requires_candidate": true,
+    "unsigned_packages_allowed": false,
+    "unsigned_release_metadata_allowed": false
+  },
+  "admission": {
+    "state": "bootstrap-bound",
+    "package_snapshot_admitted": false,
+    "apt_source_activation_admitted": false,
+    "pending_gate": "signing-key-admission-and-first-signed-snapshot"
+  }
+}
