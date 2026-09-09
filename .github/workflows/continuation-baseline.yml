@@ -57,7 +57,7 @@ jobs:
           python3 -m py_compile os/usr-local/bin/reaper-workspace-status
           python3 -m py_compile recovery/workspace/desktop_shell.py
           bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh
-          if [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
+          if [ "${GITHUB_REF_NAME}" = "full-os-mutable-layer" ] || [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
             bash -n candidates/reaper-debian-signing-key/install-trust-root.sh candidates/reaper-debian-signing-key/rollback-trust-root.sh
           fi
       - name: Run reaperctl unit tests
@@ -81,15 +81,29 @@ jobs:
             python3 scripts/os-mutation-policy.py path /opt/dotnet-10.0.302 --json >/dev/null
             python3 scripts/os-mutation-policy.py path /etc/profile.d/dotnet-10.0.302.sh --json >/dev/null
             python3 scripts/os-mutation-policy.py package cmake --json >/dev/null
-          fi
-          if [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
-            test "$(python3 scripts/os-mutation-policy.py path /mnt/data/reaper-apt-repository --json; rc=$?; test "$rc" -eq 3; echo candidate-required)" >/dev/null
             set +e
+            python3 scripts/os-mutation-policy.py path /mnt/data/reaper-apt-repository --json >/dev/null
+            rc0=$?
             python3 scripts/os-mutation-policy.py path /etc/apt/keyrings/reaper-debian-repo.gpg --json >/dev/null
             rc1=$?
             python3 scripts/os-mutation-policy.py path /etc/apt/sources.list.d/reaper-debian-repo.sources --json >/dev/null
             rc2=$?
             set -e
+            test "$rc0" -eq 3
+            test "$rc1" -eq 3
+            test "$rc2" -eq 3
+            python3 scripts/os-mutation-policy.py package reaper-workspace-status --json >/dev/null
+          fi
+          if [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
+            set +e
+            python3 scripts/os-mutation-policy.py path /mnt/data/reaper-apt-repository --json >/dev/null
+            rc0=$?
+            python3 scripts/os-mutation-policy.py path /etc/apt/keyrings/reaper-debian-repo.gpg --json >/dev/null
+            rc1=$?
+            python3 scripts/os-mutation-policy.py path /etc/apt/sources.list.d/reaper-debian-repo.sources --json >/dev/null
+            rc2=$?
+            set -e
+            test "$rc0" -eq 3
             test "$rc1" -eq 3
             test "$rc2" -eq 3
             python3 scripts/os-mutation-policy.py package reaper-workspace-status --json >/dev/null
