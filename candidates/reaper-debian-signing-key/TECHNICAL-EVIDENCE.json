@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "candidate": "reaper-debian-signing-key",
+  "private_repository_commit": "fcd3b1097c67dd57b5f9437ffa1952a784b61cd3",
+  "private_repository_ci_run_id": "34294140407",
+  "private_repository_ci_conclusion": "success",
+  "snapshot_id": "2026-09-09.1",
+  "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56",
+  "signing_fingerprint": "EAE567EB437C007F46A58BDCA76356FF985B3F3B",
+  "public_key_sha256": "7dc135b64febe59163cd293718cb02e2a2b3ad9ffe7ec01ecf9d9c93ec10e077",
+  "package": {
+    "name": "reaper-workspace-status",
+    "version": "1.0.0-1",
+    "deb_sha256": "a2f5fa8679720368b30377d10a541f8dd95cddfa9d8e5b39e6b433f0e346fe8b",
+    "source_sha256": "765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed"
+  },
+  "isolated_apt": {
+    "missing_key_exit_code": 100,
+    "missing_key_rejected": true,
+    "signed_by_update": "PASS",
+    "candidate_version": "1.0.0-1",
+    "download_hash_verified": true
+  },
+  "sandbox_trust_root_rehearsal": {
+    "install": "PASS",
+    "rollback_drift_rejection_exit_code": 3,
+    "rollback_drift_rejected": true,
+    "rollback_after_restoring_expected_bytes": "PASS",
+    "final_key_absent": true,
+    "final_source_absent": true
+  },
+  "protected_live_state": {
+    "reaper_project_sha256": "2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1",
+    "reaper_binary_sha256": "cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4",
+    "live_trust_root_installed": false,
+    "live_apt_source_active": false
+  },
+  "verdict": "TECHNICAL-PASS-OWNER-GATE-PENDING"
+}
