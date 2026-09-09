@@ -46,6 +46,11 @@ jobs:
           assert d['state'] == 'security-mechanism-verified-target-environment-pending'
           PY
 
+      - name: Install runner-only X11 inspection dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends x11-utils iproute2
+
       - name: Verify runtime tools for transport self-test
         run: |
           command -v Xvfb
