@@ -30,6 +30,34 @@
     "xauthority_mode": "0600",
     "direct_stock_xvfb_tcp_design": "REJECTED_WILDCARD_BIND"
   },
+  "target_runtime_preflight": {
+    "source_role": "operator-reported-execution-result",
+    "source_commit": "cbdf2ca46c6d266fc2dad4cf2074ca6aea92a459",
+    "command": "python3 recovery/workspace/reaper-display88-tcp-candidate.py preflight --display 88",
+    "exit_code": 0,
+    "af_unix": {
+      "allowed": false,
+      "errno": 1,
+      "error": "[Errno 1] Operation not permitted"
+    },
+    "af_inet": {
+      "allowed": true,
+      "errno": null,
+      "error": null
+    },
+    "sandbox": {
+      "seccomp": 2,
+      "no_new_privs": 1
+    },
+    "listener_scope": "loopback-ipv4-only",
+    "tcp_display": "127.0.0.1:88",
+    "tcp_endpoint": "127.0.0.1:6088",
+    "xauthority_required": true,
+    "xvfb_own_listener_creation": false,
+    "listener_activated": false,
+    "canonical_display_modified": false,
+    "evidence_limit": "Preflight proves AF_INET socket creation and temporary loopback binding in the restricted target runtime. It does not prove Xvfb startup, inherited-FD adoption, Xauthority authentication, REAPER startup, or canonical :88 reconstruction in that runtime."
+  },
   "authority_locks": {
     "golden_master_changed": false,
     "reaper_binary_changed": false,
@@ -39,9 +67,9 @@
     "canonical_display_88_listener_activated": false
   },
   "remaining_evidence": [
-    "Run candidate preflight inside the AF_UNIX-denied target chat and prove af_inet.allowed=true.",
-    "After target-environment compatibility is proven, perform the owner-controlled new-listener approval gate before promotion or canonical :88 activation.",
+    "Run the candidate authenticated inherited-FD Xvfb self-test on a throwaway display inside the AF_UNIX-denied target chat and prove loopback-only listener, authenticated xdpyinfo PASS, unauthenticated DENIED, and Unix socket ABSENT.",
+    "After target-runtime Xvfb compatibility is proven, perform the owner-controlled new-listener approval gate before promotion or canonical :88 activation.",
     "After approval, execute one controlled canonical :88 reconstruction and capture listener, Xauthority, REAPER-window, project-hash, binary-hash, and rollback evidence."
   ],
-  "state": "security-mechanism-verified-target-environment-pending"
+  "state": "target-environment-preflight-verified-runtime-selftest-pending"
 }
