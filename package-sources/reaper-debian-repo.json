@@ -8,11 +8,16 @@
     "default_branch": "main",
     "bound_bootstrap_commit": "57afcc6dc995aae69bec1c663a2e4885b2ddc9c0",
     "bootstrap_ci_run_id": "34293034792",
-    "bootstrap_ci_conclusion": "success"
+    "bootstrap_ci_conclusion": "success",
+    "bound_snapshot_commit": "fcd3b1097c67dd57b5f9437ffa1952a784b61cd3",
+    "snapshot_ci_run_id": "34294140407",
+    "snapshot_ci_conclusion": "success"
   },
   "consumer": {
     "repository": "taylorfrey529-ai/reaper-golden-master",
-    "branch": "full-os-mutable-layer",
+    "branch": "candidate/reaper-debian-signing-key",
+    "parent_branch": "full-os-mutable-layer",
+    "parent_commit": "8568d96ad01e7f320352b4830d242ba1397296f4",
     "policy": "MUTABILITY.json"
   },
   "compatibility": {
@@ -30,20 +35,32 @@
     "local_uri": "file:/mnt/data/reaper-apt-repository",
     "github_credentials_in_apt_configuration_allowed": false
   },
+  "snapshot": {
+    "state": "verified-private-snapshot",
+    "snapshot_id": "2026-09-09.1",
+    "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56",
+    "package_name": "reaper-workspace-status",
+    "package_version": "1.0.0-1",
+    "package_sha256": "a2f5fa8679720368b30377d10a541f8dd95cddfa9d8e5b39e6b433f0e346fe8b"
+  },
   "trust": {
     "repository_signing_required": true,
-    "signing_key_status": "pending-admission",
-    "signing_key_fingerprint": null,
+    "signing_key_status": "candidate-staged",
+    "signing_key_fingerprint": "EAE567EB437C007F46A58BDCA76356FF985B3F3B",
+    "public_key_sha256": "7dc135b64febe59163cd293718cb02e2a2b3ad9ffe7ec01ecf9d9c93ec10e077",
     "signed_by_scope_required": true,
     "trust_root_installed_on_live_os": false,
     "trust_root_change_requires_candidate": true,
+    "trust_root_candidate_branch": "candidate/reaper-debian-signing-key",
     "unsigned_packages_allowed": false,
     "unsigned_release_metadata_allowed": false
   },
   "admission": {
-    "state": "bootstrap-bound",
-    "package_snapshot_admitted": false,
+    "state": "signed-snapshot-bound-candidate",
+    "repository_snapshot_verified": true,
+    "consumer_trust_root_admitted": false,
     "apt_source_activation_admitted": false,
-    "pending_gate": "signing-key-admission-and-first-signed-snapshot"
+    "package_install_admitted": false,
+    "pending_gate": "owner-approve-reaper-debian-signing-key-candidate"
   }
 }
