@@ -11,6 +11,7 @@ MANIFEST_SIG="$REPO_ROOT/SNAPSHOT.sha256.asc"
 INRELEASE="$REPO_ROOT/dists/trixie/InRelease"
 KEY_DST="$ROOT_PREFIX/etc/apt/keyrings/reaper-debian-repo.gpg"
 SOURCE_DST="$ROOT_PREFIX/etc/apt/sources.list.d/reaper-debian-repo.sources"
+
 for f in "$KEY_SRC" "$MANIFEST" "$MANIFEST_SIG" "$INRELEASE"; do
   [ -f "$f" ] && [ ! -L "$f" ] || { echo "candidate-install: missing or symlink: $f" >&2; exit 2; }
 done
@@ -20,7 +21,10 @@ ACTUAL_FPR=$(gpg --batch --show-keys --with-colons "$KEY_SRC" 2>/dev/null | awk 
 [ "$ACTUAL_FPR" = "$FPR" ] || { echo "candidate-install: fingerprint mismatch: $ACTUAL_FPR" >&2; exit 3; }
 gpgv --keyring "$KEY_SRC" "$MANIFEST_SIG" "$MANIFEST" >/dev/null 2>&1 || { echo 'candidate-install: snapshot signature invalid' >&2; exit 4; }
 gpgv --keyring "$KEY_SRC" "$INRELEASE" >/dev/null 2>&1 || { echo 'candidate-install: InRelease signature invalid' >&2; exit 4; }
-( cd "$REPO_ROOT"; sha256sum -c SNAPSHOT.sha256 >/dev/null ) || { echo 'candidate-install: snapshot member verification failed' >&2; exit 4; }
+(
+  cd "$REPO_ROOT"
+  sha256sum -c SNAPSHOT.sha256 >/dev/null
+) || { echo 'candidate-install: snapshot member verification failed' >&2; exit 4; }
 [ ! -e "$KEY_DST" ] && [ ! -L "$KEY_DST" ] || { echo "candidate-install: target already exists: $KEY_DST" >&2; exit 5; }
 [ ! -e "$SOURCE_DST" ] && [ ! -L "$SOURCE_DST" ] || { echo "candidate-install: target already exists: $SOURCE_DST" >&2; exit 5; }
 install -d -m 0755 "$(dirname "$KEY_DST")" "$(dirname "$SOURCE_DST")"
