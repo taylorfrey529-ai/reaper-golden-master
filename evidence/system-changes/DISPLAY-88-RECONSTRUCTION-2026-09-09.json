@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "operation": "display-88-cross-chat-reconstruction-rehearsal",
+  "logical_monitor_id": "reaper-x11-display-88-v1",
+  "display": ":88",
+  "geometry": "1440x900x24",
+  "strategy": "attach-if-visible-otherwise-reconstruct",
+  "pre_state": {
+    "xvfb_pid_advisory": 5648,
+    "reaper_pid_advisory": 8150,
+    "project_sha256": "2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1",
+    "reaper_sha256": "cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4",
+    "reaper_ini_sha256": "694291e73670d47f5ba3a171c866475a69d94ad438990d65e89df3f0e055daaa"
+  },
+  "transition": {
+    "display_absent_after_stop": true,
+    "x11_socket_absent_after_stop": true,
+    "stale_runtime_reused": false
+  },
+  "post_state": {
+    "xvfb_pid_advisory": 13359,
+    "openbox_pid_advisory": 13369,
+    "desktop_shell_pid_advisory": 13378,
+    "reaper_pid_advisory": 13414,
+    "project_sha256": "2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1",
+    "reaper_sha256": "cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4",
+    "reaper_ini_sha256": "b71dc65046961b96217630175dec8c167d30eefdc0f3dd3b106cc6db8a4ff6ba",
+    "window_title": "ASIO-Routing-Project - REAPER v7.79 - EVALUATION LICENSE",
+    "display_reachable": true,
+    "x11_socket_present": true
+  },
+  "checkpoint": {
+    "manifest_sha256": "027595cf0f1abef9699dbcfdb3c9483a5471621987f136433401edb54c6e9c92",
+    "frame_sha256": "2d09b863855d341925353c10d4f50cff0d8b82d0ffd9c0b9d64f3a508622898c",
+    "bundle_sha256": "e2b9a4f044ad04481294bbba40adc04e98973c177ff691042d7b45c6092d5d29"
+  },
+  "verdict": "PASS",
+  "notes": [
+    "The Xvfb and REAPER PIDs rotated, proving reconstruction rather than PID inheritance.",
+    "Project and REAPER binary hashes remained exact.",
+    "reaper.ini changed during legitimate REAPER restart and remains mutable runtime configuration.",
+    "No TCP/VNC listener was introduced."
+  ]
+}
