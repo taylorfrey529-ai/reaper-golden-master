@@ -15,9 +15,12 @@
   },
   "consumer": {
     "repository": "taylorfrey529-ai/reaper-golden-master",
-    "branch": "candidate/reaper-debian-signing-key",
-    "parent_branch": "full-os-mutable-layer",
-    "parent_commit": "8568d96ad01e7f320352b4830d242ba1397296f4",
+    "branch": "full-os-mutable-layer",
+    "admitted_from_candidate_branch": "candidate/reaper-debian-signing-key",
+    "admitted_candidate_commit": "edee08555683c72d726345e94b404d17b32ab1aa",
+    "candidate_ci_run_id": "34294605562",
+    "candidate_ci_conclusion": "success",
+    "owner_approved": true,
     "policy": "MUTABILITY.json"
   },
   "compatibility": {
@@ -36,7 +39,7 @@
     "github_credentials_in_apt_configuration_allowed": false
   },
   "snapshot": {
-    "state": "verified-private-snapshot",
+    "state": "admitted-private-snapshot",
     "snapshot_id": "2026-09-09.1",
     "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56",
     "package_name": "reaper-workspace-status",
@@ -45,22 +48,40 @@
   },
   "trust": {
     "repository_signing_required": true,
-    "signing_key_status": "candidate-staged",
+    "signing_key_status": "admitted-active",
     "signing_key_fingerprint": "EAE567EB437C007F46A58BDCA76356FF985B3F3B",
     "public_key_sha256": "7dc135b64febe59163cd293718cb02e2a2b3ad9ffe7ec01ecf9d9c93ec10e077",
     "signed_by_scope_required": true,
-    "trust_root_installed_on_live_os": false,
+    "trust_root_installed_on_live_os": true,
+    "trust_root_path": "/etc/apt/keyrings/reaper-debian-repo.gpg",
+    "apt_source_path": "/etc/apt/sources.list.d/reaper-debian-repo.sources",
+    "apt_source_sha256": "1701fdeb0a0d68cc3f8da5b1a6058e4dc985e1f683101e9fba884bafb7aee9d2",
     "trust_root_change_requires_candidate": true,
     "trust_root_candidate_branch": "candidate/reaper-debian-signing-key",
+    "trust_root_candidate_commit": "edee08555683c72d726345e94b404d17b32ab1aa",
     "unsigned_packages_allowed": false,
     "unsigned_release_metadata_allowed": false
   },
+  "live_evidence": {
+    "local_repository_present": true,
+    "package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018",
+    "listener_inventory_sha256": "69b15352b7611ce5e030771733d63726b6392b86aa11d746b87531315ae64d0a",
+    "project_sha256": "2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1",
+    "reaper_sha256": "cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4",
+    "workspace_status_sha256": "765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed",
+    "apt_candidate": "1.0.0-1",
+    "package_installed": false,
+    "apt_update_output_sha256": "c6f79a5c440a2bfc4428f73b76594d735a7e5614653b94a73d72d1cfff90b00b",
+    "apt_policy_output_sha256": "955770063ff89b4c71027c21d9fa1f323e9cef8a78393ba516b65513cd06d6aa",
+    "live_rollback_output_sha256": "d21d32fb68be4c6e1862dc5baed6cf7db098a954e72426c8dd59a9d78a6b3ddf",
+    "live_reinstall_output_sha256": "7f0d918c0fadbd64d4988014ed895d213e78695b281ee94618e676ea1be0b54b"
+  },
   "admission": {
-    "state": "signed-snapshot-bound-candidate",
+    "state": "trust-root-admitted",
     "repository_snapshot_verified": true,
-    "consumer_trust_root_admitted": false,
-    "apt_source_activation_admitted": false,
+    "consumer_trust_root_admitted": true,
+    "apt_source_activation_admitted": true,
     "package_install_admitted": false,
-    "pending_gate": "owner-approve-reaper-debian-signing-key-candidate"
+    "pending_gate": "signed-package-install-reaper-workspace-status-1.0.0-1"
   }
 }
