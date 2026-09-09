@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "branch": "full-os-mutable-layer",
+  "policy_sha256": "6ed93cecc10587b00791d1cff2139022497c34d32d6ad0dc02a9441c26864003",
+  "operation": "install-and-rehearse-cross-chat-display-88-handoff",
+  "classification": "mutable",
+  "requested_change": "Make the logical REAPER X11 display :88 recoverable across chat/runtime boundaries by attaching to an existing owner runtime when visible or reconstructing the same 1440x900 Xvfb/Openbox/REAPER session from a durable checkpoint when the old runtime is isolated.",
+  "affected_paths": [
+    {
+      "path": "/mnt/data/ubuntu-desktop-workspace/reaper-display88ctl.py",
+      "classification": "mutable",
+      "before_sha256": null,
+      "after_sha256": "772a50e1a3e27a5016c12c6125e009da92bf286b1c92b1866c6d085203723b57"
+    },
+    {
+      "path": "/mnt/data/ubuntu-desktop-workspace/acquire-display-88.sh",
+      "classification": "mutable",
+      "before_sha256": null,
+      "after_sha256": "e00213491b037c6462f90fa3034bab10464789ef6b12e61a2f277acb2f44e6d3"
+    },
+    {
+      "path": "/mnt/data/ubuntu-desktop-workspace/handoff/display-88",
+      "classification": "mutable",
+      "before_sha256": null,
+      "after_sha256": null
+    },
+    {
+      "path": "/mnt/data/ubuntu-desktop-workspace/config/REAPER/reaper.ini",
+      "classification": "mutable",
+      "before_sha256": "694291e73670d47f5ba3a171c866475a69d94ad438990d65e89df3f0e055daaa",
+      "after_sha256": "b71dc65046961b96217630175dec8c167d30eefdc0f3dd3b106cc6db8a4ff6ba"
+    }
+  ],
+  "affected_packages": [],
+  "pre_state": {
+    "package_inventory_sha256": "2b265ff8b859e8413e82c37eda59c315621833713c3cae46635726a608ba228a",
+    "notes": "Before the reconstruction rehearsal, Xvfb :88 PID 5648 and REAPER PID 8150 owned the canonical session. The project SHA-256 was 2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1 and the REAPER executable SHA-256 was cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4."
+  },
+  "post_state": {
+    "package_inventory_sha256": "2b265ff8b859e8413e82c37eda59c315621833713c3cae46635726a608ba228a",
+    "notes": "After deliberately stopping :88 and requiring reconstruction, Xvfb :88 was recreated as PID 13359 and REAPER as PID 13414. The canonical project and REAPER executable hashes remained exact. reaper.ini changed only as mutable runtime configuration during the legitimate REAPER restart and is retained in the handoff overlay."
+  },
+  "services": {
+    "added": [],
+    "removed": [],
+    "started": [],
+    "stopped": [],
+    "enabled": [],
+    "disabled": []
+  },
+  "network_listeners": {
+    "before": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "after": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "new_listeners": []
+  },
+  "rollback": {
+    "available": true,
+    "artifacts": [
+      "recovery/workspace/rollback-display-88-handoff.sh",
+      "/mnt/data/ubuntu-desktop-workspace/handoff/display-88/reaper-display-88-handoff.tar.gz"
+    ],
+    "instructions": "Use recovery/workspace/rollback-display-88-handoff.sh. It refuses drift in the installed controller/wrapper, removes only those files and the handoff directory, and intentionally leaves the running Xvfb/Openbox/REAPER session untouched."
+  },
+  "verification": {
+    "result": "PASS",
+    "golden_master_unchanged": true,
+    "security_invariants_preserved": true,
+    "notes": "A real scrot frame, X11 window tree, process record, project/reaper.ini overlay and SHA-256 manifest were created. The display was then deliberately removed: xdpyinfo failed and /tmp/.X11-unix/X88 was absent. acquire reconstructed a new Xvfb/Openbox/desktop-shell/REAPER session with rotated PIDs and restored the canonical window title ASIO-Routing-Project - REAPER v7.79 - EVALUATION LICENSE. The project remained 2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1, the REAPER binary remained cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4, package inventory remained 2b265ff8b859e8413e82c37eda59c315621833713c3cae46635726a608ba228a, and listener inventory remained 69b15352b7611ce5e030771733d63726b6392b86aa11d746b87531315ae64d0a. Xvfb remains -nolisten tcp; no VNC/TCP bridge or new listener was introduced."
+  },
+  "display_rehearsal": {
+    "logical_monitor_id": "reaper-x11-display-88-v1",
+    "display": ":88",
+    "geometry": "1440x900x24",
+    "strategy": "attach-if-visible-otherwise-reconstruct",
+    "pre_xvfb_pid_advisory": 5648,
+    "post_xvfb_pid_advisory": 13359,
+    "pre_reaper_pid_advisory": 8150,
+    "post_reaper_pid_advisory": 13414,
+    "evaluation_ui_preserved": true,
+    "latest_checkpoint_manifest_sha256": "24fd6d092c88ae109ceb46c99b3cab159d843b0540f5cdb11e164fb9e9c92ce7",
+    "latest_checkpoint_frame_sha256": "21e8e8e7ee1d3fbc015b063714ee7f9dfaa06f425a20d81dceab217bc9a7ea3e",
+    "latest_checkpoint_bundle_sha256": "0a864feff1dabdee1489a299476dcc64a665fea04b70354a62cbf6a95bc493bd"
+  }
+}
