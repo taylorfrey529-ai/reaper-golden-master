@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "candidate": "reaper-debian-signing-key",
+  "candidate_branch": "candidate/reaper-debian-signing-key",
+  "parent_branch": "full-os-mutable-layer",
+  "parent_commit": "8568d96ad01e7f320352b4830d242ba1397296f4",
+  "private_repository": {
+    "full_name": "taylorfrey529-ai/reaper-debian-repo",
+    "repository_id": "1362017734",
+    "bound_snapshot_commit": "fcd3b1097c67dd57b5f9437ffa1952a784b61cd3",
+    "snapshot_ci_run_id": "34294140407",
+    "snapshot_ci_conclusion": "success",
+    "snapshot_id": "2026-09-09.1",
+    "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56"
+  },
+  "signing_authority": {
+    "fingerprint": "EAE567EB437C007F46A58BDCA76356FF985B3F3B",
+    "public_key_sha256": "7dc135b64febe59163cd293718cb02e2a2b3ad9ffe7ec01ecf9d9c93ec10e077",
+    "secret_key_committed": false
+  },
+  "proposed_live_changes": [
+    "/mnt/data/reaper-apt-repository",
+    "/etc/apt/keyrings/reaper-debian-repo.gpg",
+    "/etc/apt/sources.list.d/reaper-debian-repo.sources"
+  ],
+  "package_install_in_candidate": false,
+  "live_trust_root_installed": false,
+  "live_apt_source_active": false,
+  "rollback_to": "absence",
+  "technical_state": "candidate-staged",
+  "owner_gate": "owner-approve-reaper-debian-signing-key-candidate"
+}
