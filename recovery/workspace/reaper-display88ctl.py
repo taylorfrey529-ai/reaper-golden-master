@@ -17,7 +17,7 @@ from pathlib import Path
 
 DEFAULT_DISPLAY_NUM = 88
 DEFAULT_ROOT = Path('/mnt/data/ubuntu-desktop-workspace')
-DEFAULT_HANDOFF_ROOT = Path('/mnt/data/reaper-display-88-handoff')
+DEFAULT_HANDOFF_ROOT = Path('/mnt/data/ubuntu-desktop-workspace/handoff/display-88')
 EXPECTED_REAPER_SHA = 'cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4'
 EXPECTED_TITLE_FRAGMENT = 'ASIO-Routing-Project - REAPER v7.79 - EVALUATION LICENSE'
 
