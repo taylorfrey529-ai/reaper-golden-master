@@ -43,7 +43,18 @@ jobs:
           assert d['security_controls']['xauthority_required'] is True
           assert d['security_controls']['normal_af_unix_path_replaced'] is False
           assert d['authority_locks']['canonical_display_88_listener_activated'] is False
-          assert d['state'] == 'security-mechanism-verified-target-environment-pending'
+          tr = d['target_runtime_preflight']
+          assert tr['source_commit'] == 'cbdf2ca46c6d266fc2dad4cf2074ca6aea92a459'
+          assert tr['exit_code'] == 0
+          assert tr['af_unix']['allowed'] is False
+          assert tr['af_unix']['errno'] == 1
+          assert tr['af_inet']['allowed'] is True
+          assert tr['af_inet']['errno'] is None
+          assert tr['sandbox']['seccomp'] == 2
+          assert tr['sandbox']['no_new_privs'] == 1
+          assert tr['listener_activated'] is False
+          assert tr['canonical_display_modified'] is False
+          assert d['state'] == 'target-environment-preflight-verified-runtime-selftest-pending'
           PY
 
       - name: Install runner-only X11 inspection dependencies
