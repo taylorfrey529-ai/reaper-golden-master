@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "candidate_id": "display-88-tcp-fallback-v1",
+  "branch": "candidate/display-88-tcp-fallback",
+  "base_commit": "5140c3ca15fe2c2112790996f74769a66aa0bca7",
+  "scope": "new-network-listener-candidate",
+  "canonical_display": ":88",
+  "candidate_display": "127.0.0.1:88",
+  "candidate_endpoint": "127.0.0.1:6088",
+  "transport": "authenticated-loopback-tcp-inherited-fd",
+  "security_controls": {
+    "ipv4_loopback_only": true,
+    "ipv6_listener": false,
+    "unix_transport_disabled_in_fallback": true,
+    "xvfb_self_created_tcp_transport_disabled": true,
+    "xauthority_required": true,
+    "xauthority_mode": "0600",
+    "xauthority_cookie_checkpointed": false,
+    "normal_af_unix_path_replaced": false,
+    "candidate_activation_refuses_when_af_unix_available": true
+  },
+  "development_selftest": {
+    "display": ":89",
+    "tcp_display": "127.0.0.1:89",
+    "endpoint": "127.0.0.1:6089",
+    "authenticated_xdpyinfo": "PASS",
+    "unauthenticated_xdpyinfo": "DENIED",
+    "unix_socket": "ABSENT",
+    "listener_observed": "127.0.0.1:6089",
+    "xauthority_mode": "0600",
+    "direct_stock_xvfb_tcp_design": "REJECTED_WILDCARD_BIND"
+  },
+  "authority_locks": {
+    "golden_master_changed": false,
+    "reaper_binary_changed": false,
+    "recovery_authority_changed": false,
+    "license_or_evaluation_bypass": false,
+    "full_os_mutable_layer_promoted": false,
+    "canonical_display_88_listener_activated": false
+  },
+  "remaining_evidence": [
+    "Run candidate preflight inside the AF_UNIX-denied target chat and prove af_inet.allowed=true.",
+    "After target-environment compatibility is proven, perform the owner-controlled new-listener approval gate before promotion or canonical :88 activation.",
+    "After approval, execute one controlled canonical :88 reconstruction and capture listener, Xauthority, REAPER-window, project-hash, binary-hash, and rollback evidence."
+  ],
+  "state": "security-mechanism-verified-target-environment-pending"
+}
