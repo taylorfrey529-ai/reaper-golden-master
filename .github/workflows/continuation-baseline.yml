@@ -7,6 +7,7 @@ on:
       - development/reaperctl
       - mutable-restrictions-lifted
       - full-os-mutable-layer
+      - candidate/reaper-debian-signing-key
   pull_request:
 
 permissions:
@@ -23,14 +24,17 @@ jobs:
         if: github.ref_name == 'mutable-restrictions-lifted'
         run: bash scripts/verify-mutability.sh
       - name: Verify secure full OS mutable-layer policy
-        if: github.ref_name == 'full-os-mutable-layer'
+        if: github.ref_name == 'full-os-mutable-layer' || github.ref_name == 'candidate/reaper-debian-signing-key'
         run: bash scripts/verify-os-mutability.sh
       - name: Verify full OS system-change evidence
-        if: github.ref_name == 'full-os-mutable-layer'
+        if: github.ref_name == 'full-os-mutable-layer' || github.ref_name == 'candidate/reaper-debian-signing-key'
         run: python3 scripts/verify-system-change-manifests.py
       - name: Verify private Debian repository binding
         if: github.ref_name == 'full-os-mutable-layer'
         run: python3 scripts/verify-package-source-bindings.py
+      - name: Verify Debian trust-root candidate
+        if: github.ref_name == 'candidate/reaper-debian-signing-key'
+        run: python3 scripts/verify-reaper-debian-trust-root-candidate.py
       - name: Compile control-plane tools
         run: |
           python3 -m py_compile bin/reaperctl
@@ -49,9 +53,13 @@ jobs:
           python3 -m py_compile scripts/os-mutation-policy.py
           python3 -m py_compile scripts/verify-system-change-manifests.py
           python3 -m py_compile scripts/verify-package-source-bindings.py
+          python3 -m py_compile scripts/verify-reaper-debian-trust-root-candidate.py
           python3 -m py_compile os/usr-local/bin/reaper-workspace-status
           python3 -m py_compile recovery/workspace/desktop_shell.py
           bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh
+          if [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
+            bash -n candidates/reaper-debian-signing-key/install-trust-root.sh candidates/reaper-debian-signing-key/rollback-trust-root.sh
+          fi
       - name: Run reaperctl unit tests
         run: python3 -m unittest discover -s tests -v
       - name: Verify continuation command routing
@@ -73,6 +81,18 @@ jobs:
             python3 scripts/os-mutation-policy.py path /opt/dotnet-10.0.302 --json >/dev/null
             python3 scripts/os-mutation-policy.py path /etc/profile.d/dotnet-10.0.302.sh --json >/dev/null
             python3 scripts/os-mutation-policy.py package cmake --json >/dev/null
+          fi
+          if [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
+            test "$(python3 scripts/os-mutation-policy.py path /mnt/data/reaper-apt-repository --json; rc=$?; test "$rc" -eq 3; echo candidate-required)" >/dev/null
+            set +e
+            python3 scripts/os-mutation-policy.py path /etc/apt/keyrings/reaper-debian-repo.gpg --json >/dev/null
+            rc1=$?
+            python3 scripts/os-mutation-policy.py path /etc/apt/sources.list.d/reaper-debian-repo.sources --json >/dev/null
+            rc2=$?
+            set -e
+            test "$rc1" -eq 3
+            test "$rc2" -eq 3
+            python3 scripts/os-mutation-policy.py package reaper-workspace-status --json >/dev/null
           fi
       - name: Run static reaperctl health gate
         run: bin/reaperctl health --static --json
