@@ -56,7 +56,11 @@ jobs:
           python3 -m py_compile scripts/verify-reaper-debian-trust-root-candidate.py
           python3 -m py_compile os/usr-local/bin/reaper-workspace-status
           python3 -m py_compile recovery/workspace/desktop_shell.py
-          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/install/install-reaper-workspace-status-package.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh os/rollback/rollback-reaper-workspace-status-package.sh
+          python3 -m py_compile recovery/workspace/reaper-display88ctl.py
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh recovery/workspace/acquire-display-88.sh recovery/workspace/rollback-display-88-handoff.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/install/install-reaper-workspace-status-package.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh os/rollback/rollback-reaper-workspace-status-package.sh
+          grep -F "DEFAULT_HANDOFF_ROOT = Path('/mnt/data/ubuntu-desktop-workspace/handoff/display-88')" recovery/workspace/reaper-display88ctl.py >/dev/null
+          grep -F -- '--handoff-root /mnt/data/ubuntu-desktop-workspace/handoff/display-88' recovery/workspace/acquire-display-88.sh >/dev/null
+          python3 recovery/workspace/reaper-display88ctl.py --display 88 preflight >/dev/null
           if [ "${GITHUB_REF_NAME}" = "full-os-mutable-layer" ] || [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
             bash -n candidates/reaper-debian-signing-key/install-trust-root.sh candidates/reaper-debian-signing-key/rollback-trust-root.sh
           fi
