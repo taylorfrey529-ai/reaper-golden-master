@@ -1,39 +1,63 @@
-# Display transport privacy hardening — NOT LIVE-VALIDATED
+# Display transport privacy review — NOT LIVE-VALIDATED
 
-Base revision: `5622cce0f9ee899fb23d98ff30aae1377ba448da`.
+Rebuilt 2026-09-09 from candidate revision
+`5622cce0f9ee899fb23d98ff30aae1377ba448da` after the previous unpublished patch
+was lost. This is new implementation work, not recovery of that exact patch.
 
-This separate candidate is unpromoted. It is not approval to activate canonical
-display :88, run acquire-candidate, or replace the admitted transport.
+## Scope
 
-Changes follow the mit-magic-cookie-1 safeguards: secret-bearing xauth input
-uses stdin, authority creation requires a private directory and refuses existing
-targets, authentication rejection must be explicit and followed by an authorized
-recheck, and listener family/address/ownership plus pathname and abstract Unix
-socket evidence are required. Cleanup is checked before success is returned.
+Only preflight and throwaway display self-testing are enabled. Canonical :88
+self-testing is refused and acquire-candidate is explicitly disabled. No live
+desktop, package installation, repository trust change, or promotion is claimed.
 
-## Evidence
+The controller sends secret-bearing xauth commands through private stdin,
+requires an owned private authority directory, refuses existing/symlink targets,
+suppresses xauth diagnostics, and publishes authority files without overwriting.
+Self-testing requires explicit authorization rejection followed by an authorized
+recheck; enabled, empty host access rules; exact IPv4 loopback listener and process
+ownership evidence; no IPv6 listener; absent pathname and abstract Unix sockets;
+authority ownership/mode checks; and cleanup before returning success.
 
-Six offline tests passed using:
+## Verification in this chat
 
-```bash
+Seven offline regression tests passed:
+
+```sh
 python3 -m unittest discover -s tests -p test_display89_privacy.py -v
 ```
 
-Python compilation and git diff whitespace checks passed. These checks do not
-prove live X11 transport behavior or exhaustively validate the controller.
+These tests cover cookie argv exclusion, redaction, existing-file preservation,
+symlink refusal, private-directory enforcement, canonical/acquisition blocking,
+and rejection of absent, wildcard, or IPv6 listener evidence. They do not replace
+live verification or a complete concurrency/security audit.
 
-The live self-test exited 1 before starting a server: Xvfb, xauth, and xdpyinfo
-are missing in the tested execution context. Dependency installation encountered
-user/group permission restrictions. Preflight reported AF_UNIX denied (errno 1),
-AF_INET creation/bind allowed, seccomp 2, and NoNewPrivs 1.
+The self-test exited 1 before server startup: Xvfb, xauth, and xdpyinfo were
+missing from PATH. The extracted Xvfb binary additionally lacks libXfont2.so.2.
+Openbox is absent. APT fails at its required user/group transitions; no sandbox
+or package-signature controls were disabled.
 
-No IPv4/IPv6 listener on port 6089 remained. Canonical :88 was untouched.
-No authentication PASS, live listener confinement PASS, or deployment readiness
-is claimed. No real cookies, authority files, or runtime credentials are included.
+Preflight: AF_UNIX denied with errno 1; AF_INET socket creation and loopback bind
+allowed with errno null; Seccomp 2; NoNewPrivs 1. The preflight listener scope is
+intended policy, not observed server evidence. No live authentication PASS is
+claimed. No server was started, and canonical :88 was untouched.
 
-## Remaining gate
+## Persistent sources
 
-In an authorized environment with the required dependencies, run the throwaway
-self-test and inspect its full result, authorization failures, authenticated
-recheck, IPv4/IPv6 listener ownership, pathname/abstract socket absence, and
-cleanup. Review the broader acquisition path separately before promotion.
+All six GM-2026-09-08 payloads match their recorded identities. The sixth backup
+is 6,456,501 bytes, SHA-256
+`c67b69e513484e0a5870bd7f55a34a280b3b771b7a5b825cc9ef5bfb932bb31a`;
+all 62 internal checksummed files pass. It restores project, audio, configuration,
+desktop source, and historical screenshots, but supplies no missing X11 binaries.
+
+## Remaining gates
+
+Supply verified Ubuntu 24.04 amd64 dependencies for Xvfb, xauth, x11-utils,
+x11-xserver-utils, and Openbox, including their dependencies and fonts. Preserve
+signed package metadata and package hashes when preparing an offline bundle on
+an authorized compatible host. Do not install the Debian 13 package snapshot as
+an assumed Ubuntu dependency source.
+
+Run the bounded self-test with those tools and review complete listener,
+authentication, ownership, and cleanup results. A separate acquisition review
+and live-state transaction are required before enabling a desktop. Historical
+screenshots and results from another runtime are not current display evidence.
