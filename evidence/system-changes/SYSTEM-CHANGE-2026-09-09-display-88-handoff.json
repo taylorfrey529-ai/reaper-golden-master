@@ -95,8 +95,10 @@
     "pre_reaper_pid_advisory": 8150,
     "post_reaper_pid_advisory": 13414,
     "evaluation_ui_preserved": true,
-    "latest_checkpoint_manifest_sha256": "24fd6d092c88ae109ceb46c99b3cab159d843b0540f5cdb11e164fb9e9c92ce7",
-    "latest_checkpoint_frame_sha256": "21e8e8e7ee1d3fbc015b063714ee7f9dfaa06f425a20d81dceab217bc9a7ea3e",
-    "latest_checkpoint_bundle_sha256": "0a864feff1dabdee1489a299476dcc64a665fea04b70354a62cbf6a95bc493bd"
+    "rehearsal_checkpoint_retained_as": "/mnt/data/ubuntu-desktop-workspace/handoff/display-88/previous",
+    "rehearsal_checkpoint_manifest_sha256": "24fd6d092c88ae109ceb46c99b3cab159d843b0540f5cdb11e164fb9e9c92ce7",
+    "rehearsal_checkpoint_frame_sha256": "21e8e8e7ee1d3fbc015b063714ee7f9dfaa06f425a20d81dceab217bc9a7ea3e",
+    "rolling_bundle_path": "/mnt/data/ubuntu-desktop-workspace/handoff/display-88/reaper-display-88-handoff.tar.gz",
+    "rolling_bundle_hash_is_dynamic": true
   }
 }
