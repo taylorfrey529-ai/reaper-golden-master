@@ -15,7 +15,10 @@ If the live workspace is already mounted:
 From a repository checkout:
 
 ```bash
-python3 recovery/workspace/reaper-display88ctl.py --display 88 acquire
+python3 recovery/workspace/reaper-display88ctl.py \
+  --display 88 \
+  --handoff-root /mnt/data/ubuntu-desktop-workspace/handoff/display-88 \
+  acquire
 ```
 
 The controller reports one of two successful modes:
@@ -26,12 +29,15 @@ The controller reports one of two successful modes:
 ## Checkpoint
 
 ```bash
-python3 recovery/workspace/reaper-display88ctl.py --display 88 checkpoint
+python3 recovery/workspace/reaper-display88ctl.py \
+  --display 88 \
+  --handoff-root /mnt/data/ubuntu-desktop-workspace/handoff/display-88 \
+  checkpoint
 ```
 
 Checkpoint root:
 
-`/mnt/data/reaper-display-88-handoff/`
+`/mnt/data/ubuntu-desktop-workspace/handoff/display-88/`
 
 It contains a genuine `scrot` capture, X11 window tree, process ownership record, current project and `reaper.ini` overlay, SHA-256 manifest, and a handoff tarball. PIDs are advisory only.
 
@@ -51,6 +57,7 @@ If `socket(AF_UNIX, ...)` is denied by the chat runtime, interactive Xvfb recons
 - The current project hash is checkpointed dynamically so later approved project edits can travel with the logical monitor.
 - The REAPER evaluation/license UI is preserved and verified by the canonical window title.
 - `reaper.ini` is treated as mutable runtime configuration and is checkpointed rather than baseline-locked.
+- The handoff directory remains under the admitted mutable workspace root.
 
 ## What is and is not transferred
 
