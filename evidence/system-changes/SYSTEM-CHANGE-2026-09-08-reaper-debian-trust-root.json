@@ -1,0 +1,113 @@
+{
+  "affected_packages": [],
+  "affected_paths": [
+    {
+      "after_exists": true,
+      "after_sha256": null,
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "candidate-required",
+      "path": "/mnt/data/reaper-apt-repository",
+      "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56"
+    },
+    {
+      "after_exists": true,
+      "after_sha256": "7dc135b64febe59163cd293718cb02e2a2b3ad9ffe7ec01ecf9d9c93ec10e077",
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "candidate-required",
+      "path": "/etc/apt/keyrings/reaper-debian-repo.gpg"
+    },
+    {
+      "after_exists": true,
+      "after_sha256": "1701fdeb0a0d68cc3f8da5b1a6058e4dc985e1f683101e9fba884bafb7aee9d2",
+      "before_exists": false,
+      "before_sha256": null,
+      "classification": "candidate-required",
+      "path": "/etc/apt/sources.list.d/reaper-debian-repo.sources"
+    }
+  ],
+  "branch": "full-os-mutable-layer",
+  "classification": "candidate-required",
+  "network_listeners": {
+    "after": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "before": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "new_listeners": []
+  },
+  "operation": "admit-private-debian-repository-trust-root",
+  "package_transaction_log": null,
+  "policy_sha256": "6ed93cecc10587b00791d1cff2139022497c34d32d6ad0dc02a9441c26864003",
+  "post_state": {
+    "apt_candidate": "reaper-workspace-status 1.0.0-1",
+    "apt_source_present": true,
+    "local_repository_present": true,
+    "notes": "Owner-approved trust root and local file source installed. The signed package is visible to APT but remains uninstalled.",
+    "package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018",
+    "trust_root_present": true
+  },
+  "pre_state": {
+    "apt_source_present": false,
+    "local_repository_present": false,
+    "notes": "The local repository snapshot, repository signing key, and APT source were absent before owner-approved admission.",
+    "package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018",
+    "trust_root_present": false
+  },
+  "requested_change": "Owner-approved admission of candidate/reaper-debian-signing-key at edee08555683c72d726345e94b404d17b32ab1aa: synchronize signed private repository snapshot 2026-09-09.1 to /mnt/data/reaper-apt-repository, install only public signing key EAE567EB437C007F46A58BDCA76356FF985B3F3B at /etc/apt/keyrings/reaper-debian-repo.gpg, and activate only the local file APT source /etc/apt/sources.list.d/reaper-debian-repo.sources. Do not install reaper-workspace-status in this transaction.",
+  "rollback": {
+    "artifacts": [
+      "candidates/reaper-debian-signing-key/install-trust-root.sh",
+      "candidates/reaper-debian-signing-key/rollback-trust-root.sh",
+      "/mnt/data/reaper-apt-live-validation/live-rollback.out",
+      "/mnt/data/reaper-apt-live-validation/live-reinstall.out"
+    ],
+    "available": true,
+    "instructions": "The exact hash-guarded rollback script restored the live key and source to absence. The signed snapshot directory was then hash-verified and moved aside to reproduce the complete pre-state absence. The identical snapshot was restored and the exact installer re-applied. Final hashes equal the approved candidate locks."
+  },
+  "schema_version": 1,
+  "services": {
+    "added": [],
+    "disabled": [],
+    "enabled": [],
+    "removed": [],
+    "started": [],
+    "stopped": []
+  },
+  "verification": {
+    "apt_policy_output_sha256": "955770063ff89b4c71027c21d9fa1f323e9cef8a78393ba516b65513cd06d6aa",
+    "apt_update_output_sha256": "c6f79a5c440a2bfc4428f73b76594d735a7e5614653b94a73d72d1cfff90b00b",
+    "candidate_ci_run_id": "34294605562",
+    "candidate_commit": "edee08555683c72d726345e94b404d17b32ab1aa",
+    "golden_master_unchanged": true,
+    "listener_inventory_sha256": "69b15352b7611ce5e030771733d63726b6392b86aa11d746b87531315ae64d0a",
+    "live_reinstall_output_sha256": "7f0d918c0fadbd64d4988014ed895d213e78695b281ee94618e676ea1be0b54b",
+    "live_rollback_output_sha256": "d21d32fb68be4c6e1862dc5baed6cf7db098a954e72426c8dd59a9d78a6b3ddf",
+    "notes": "Private repository exact head fcd3b1097c67dd57b5f9437ffa1952a784b61cd3 passed signed-snapshot CI 34294140407. APT update using the live source/key succeeded in an isolated APT state and exposed candidate 1.0.0-1. dpkg confirmed the package remains uninstalled. Canonical project stayed 2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1; REAPER stayed cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4; workspace status stayed 765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed. Package and listener inventories remained byte-identical. Live rollback-to-absence and identical reinstall both passed.",
+    "owner_approved": true,
+    "package_installed": false,
+    "package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018",
+    "private_snapshot_ci_run_id": "34294140407",
+    "private_snapshot_commit": "fcd3b1097c67dd57b5f9437ffa1952a784b61cd3",
+    "result": "PASS",
+    "security_invariants_preserved": true,
+    "signing_key_fingerprint": "EAE567EB437C007F46A58BDCA76356FF985B3F3B",
+    "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56"
+  }
+}
