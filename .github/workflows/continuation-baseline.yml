@@ -56,7 +56,7 @@ jobs:
           python3 -m py_compile scripts/verify-reaper-debian-trust-root-candidate.py
           python3 -m py_compile os/usr-local/bin/reaper-workspace-status
           python3 -m py_compile recovery/workspace/desktop_shell.py
-          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh
+          bash -n recovery/workspace/start-desktop.sh recovery/workspace/stop-desktop.sh scripts/verify-mutability.sh scripts/verify-os-mutability.sh os/install/install-dotnet-10.0.302.sh os/install/install-reaper-workspace-status-package.sh os/rollback/rollback-dotnet-10.0.302.sh os/rollback/rollback-reaper-workspace-status.sh os/rollback/rollback-reaper-workspace-status-package.sh
           if [ "${GITHUB_REF_NAME}" = "full-os-mutable-layer" ] || [ "${GITHUB_REF_NAME}" = "candidate/reaper-debian-signing-key" ]; then
             bash -n candidates/reaper-debian-signing-key/install-trust-root.sh candidates/reaper-debian-signing-key/rollback-trust-root.sh
           fi
