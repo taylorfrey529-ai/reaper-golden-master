@@ -10,6 +10,7 @@ import os
 import secrets
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -71,7 +72,7 @@ def proc_status() -> dict[str, int | None]:
 def candidate_preflight(display: int) -> dict[str, object]:
     return {
         'schema_version': 1,
-        'candidate': 'display-88-tcp-fallback-v1',
+        'candidate': 'display-89-privacy-review-v2',
         'display': f':{display}',
         'tcp_display': tcp_display(display),
         'tcp_endpoint': f'{TCP_HOST}:{tcp_port(display)}',
@@ -82,6 +83,7 @@ def candidate_preflight(display: int) -> dict[str, object]:
         'listener_scope': 'loopback-ipv4-only',
         'xauthority_required': True,
         'xvfb_own_listener_creation': False,
+        'listener_scope_verified': False,
     }
 
 
@@ -92,19 +94,29 @@ def ensure_tools() -> None:
 
 
 def make_xauthority(path: Path, display: int) -> str:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    parent = path.parent.lstat()
+    if not stat.S_ISDIR(parent.st_mode) or parent.st_uid != os.getuid() or parent.st_mode & 0o077:
+        raise RuntimeError('authority parent must be a private owned directory')
+    if path.exists() or path.is_symlink():
+        raise RuntimeError('refusing to replace existing authority target')
     cookie = secrets.token_hex(16)
-    tmp = path.with_name(path.name + '.tmp')
-    if tmp.exists():
-        tmp.unlink()
-    tmp.touch(mode=0o600)
-    os.chmod(tmp, 0o600)
-    cp = run(['xauth', '-f', str(tmp), 'add', tcp_display(display), '.', cookie], timeout=5)
-    if cp.returncode != 0:
+    fd, name = tempfile.mkstemp(prefix='.authority-', dir=path.parent)
+    os.close(fd)
+    tmp = Path(name)
+    try:
+        try:
+            cp = subprocess.run(['xauth', '-f', str(tmp), '-q'],
+                                input=f'add {tcp_display(display)} MIT-MAGIC-COOKIE-1 {cookie}\n',
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            raise RuntimeError('xauth execution failed; secret-bearing output suppressed') from None
+        if cp.returncode != 0:
+            raise RuntimeError('xauth failed; secret-bearing output suppressed')
+        os.chmod(tmp, 0o600)
+        os.link(tmp, path)
+    finally:
         tmp.unlink(missing_ok=True)
-        raise RuntimeError('xauth failed: ' + cp.stderr.strip())
-    os.replace(tmp, path)
-    os.chmod(path, 0o600)
     return cookie
 
 
@@ -208,6 +220,13 @@ def terminate(pid: int) -> None:
 def selftest(display: int) -> dict[str, object]:
     if display == 88:
         raise RuntimeError('selftest refuses canonical :88; use a throwaway display such as :89')
+    if not 1 <= display <= 59535:
+        raise RuntimeError('display outside supported TCP port range')
+    ensure_tools()
+    if not shutil.which('xhost'):
+        raise RuntimeError('missing required tool: xhost')
+    if unix_socket_present(display) or Path(f'/tmp/.X{display}-lock').exists() or abstract_socket_present(display) or tcp_records(tcp_port(display)):
+        raise RuntimeError('throwaway display is occupied; no resources changed')
     pf = candidate_preflight(display)
     if not pf['af_inet']['allowed']:
         raise OSError(errno.EPERM, 'AF_INET loopback bind denied')
@@ -219,27 +238,43 @@ def selftest(display: int) -> dict[str, object]:
         make_xauthority(auth, display)
         pid = start_loopback_xvfb(display, auth, log, geometry='320x200x24')
         wait_x(display, auth)
-        rows = listener_rows(tcp_port(display))
-        if unix_socket_present(display):
+        rows = tcp_records(tcp_port(display))
+        verify_listener(rows, pid)
+        if unix_socket_present(display) or abstract_socket_present(display):
             raise RuntimeError('security failure: Unix X11 socket unexpectedly exists')
-        if rows and any(f'{TCP_HOST}:{tcp_port(display)}' not in row for row in rows):
-            raise RuntimeError('security failure: X11/TCP listener is not loopback-only')
-        bad_env = os.environ.copy()
-        bad_env['DISPLAY'] = tcp_display(display)
-        bad_env['XAUTHORITY'] = '/dev/null'
+        host_env = xenv(display, auth)
+        host_env['LC_ALL'] = 'C'
+        hosts = run(['xhost'], env=host_env, timeout=3)
+        if hosts.returncode != 0 or hosts.stdout.strip() != 'access control enabled, only authorized clients can connect':
+            raise RuntimeError('host access control is disabled, populated, or unverified')
+        authority_stat = auth.stat()
+        if stat.S_IMODE(authority_stat.st_mode) != 0o600 or authority_stat.st_uid != os.getuid():
+            raise RuntimeError('invalid authority ownership or mode')
+        empty = tmp / 'empty.Xauthority'
+        empty.touch(mode=0o600)
+        bad_env = xenv(display, empty)
+        bad_env['LC_ALL'] = 'C'
         unauth = run(['xdpyinfo', '-display', tcp_display(display)], env=bad_env, timeout=3)
-        if unauth.returncode == 0:
-            raise RuntimeError('security failure: unauthenticated X11 client was accepted')
-        return {
+        if unauth.returncode == 0 or 'Authorization required' not in unauth.stderr:
+            raise RuntimeError('unauthenticated probe did not prove authorization rejection')
+        recheck = run(['xdpyinfo', '-display', tcp_display(display)], env=xenv(display, auth), timeout=3)
+        if recheck.returncode != 0:
+            raise RuntimeError('authenticated recheck failed')
+        result = {
             'ok': True,
-            'candidate': 'display-88-tcp-fallback-v1',
+            'candidate': 'display-89-privacy-review-v2',
             'display': f':{display}',
             'tcp_display': tcp_display(display),
             'endpoint': f'{TCP_HOST}:{tcp_port(display)}',
             'xvfb_pid_advisory': pid,
             'authenticated_xdpyinfo': 'PASS',
             'unauthenticated_xdpyinfo': 'DENIED',
+            'authenticated_exit_code': recheck.returncode,
+            'unauthenticated_exit_code': unauth.returncode,
+            'authenticated_recheck': 'PASS',
             'unix_socket': 'ABSENT',
+            'abstract_unix_socket': 'ABSENT',
+            'host_access_rules': 'enabled-empty',
             'listener_rows': rows,
             'listener_scope': 'loopback-ipv4-only',
             'xauthority_mode': oct(auth.stat().st_mode & 0o777),
@@ -247,7 +282,38 @@ def selftest(display: int) -> dict[str, object]:
     finally:
         if pid is not None:
             terminate(pid)
+            os.waitpid(pid, 0)
+            if Path(f'/proc/{pid}').exists() or tcp_records(tcp_port(display)) or unix_socket_present(display) or abstract_socket_present(display):
+                raise RuntimeError('cleanup unverified; private authority retained')
         shutil.rmtree(tmp, ignore_errors=True)
+    if tmp.exists():
+        raise RuntimeError('private selftest directory cleanup failed')
+    result['cleanup'] = 'PASS'
+    return result
+
+
+def abstract_socket_present(display: int) -> bool:
+    name = f'@/tmp/.X11-unix/X{display}'
+    return any(line.split()[-1:] == [name] for line in Path('/proc/net/unix').read_text().splitlines()[1:])
+
+
+def tcp_records(port: int) -> list[dict[str, str]]:
+    records = []
+    for family, filename in [('IPv4', '/proc/net/tcp'), ('IPv6', '/proc/net/tcp6')]:
+        for line in Path(filename).read_text().splitlines()[1:]:
+            fields = line.split()
+            address, port_hex = fields[1].split(':')
+            if fields[3] == '0A' and int(port_hex, 16) == port:
+                records.append({'family': family, 'address_hex': address, 'inode': fields[9]})
+    return records
+
+
+def verify_listener(records: list[dict[str, str]], pid: int) -> None:
+    if len(records) != 1 or records[0]['family'] != 'IPv4' or records[0]['address_hex'] != '0100007F':
+        raise RuntimeError('listener must be exactly one loopback IPv4 socket')
+    owned = {os.readlink(fd) for fd in Path(f'/proc/{pid}/fd').iterdir()}
+    if f"socket:[{records[0]['inode']}]" not in owned:
+        raise RuntimeError('listener ownership could not be verified')
 
 
 def load_base_controller():
@@ -284,69 +350,7 @@ def launch_client(cmd: list[str], env: dict[str, str], log_path: Path, cwd: Path
 
 
 def acquire_tcp_candidate(root: Path, display: int, handoff_root: Path) -> dict[str, object]:
-    if display != 88:
-        raise RuntimeError('candidate acquisition is scoped to canonical display :88')
-    pf = candidate_preflight(display)
-    if pf['af_inet']['allowed'] is not True:
-        err = pf['af_inet']
-        raise RuntimeError(f"TCP fallback blocked: AF_INET denied errno={err['errno']} error={err['error']}")
-    if pf['af_unix']['allowed'] is True:
-        raise RuntimeError('candidate TCP activation refused: AF_UNIX is available; use the admitted local transport')
-
-    base = load_base_controller()
-    base.require_workspace(root)
-    base.overlay_checkpoint(root, handoff_root)
-    if sha256(root / 'apps/REAPER/reaper') != EXPECTED_REAPER_SHA:
-        raise RuntimeError('REAPER binary hash mismatch')
-
-    run_root = root / 'run'
-    logs = root / 'logs'
-    run_root.mkdir(parents=True, exist_ok=True)
-    auth = run_root / 'display-88-tcp.Xauthority'
-    make_xauthority(auth, display)
-    xvfb_pid = start_loopback_xvfb(display, auth, logs / 'xvfb-tcp-88.log')
-    try:
-        wait_x(display, auth)
-        rows = listener_rows(tcp_port(display))
-        if unix_socket_present(display):
-            raise RuntimeError('security failure: Unix X11 socket exists in TCP fallback mode')
-        if rows and any(f'{TCP_HOST}:{tcp_port(display)}' not in row for row in rows):
-            raise RuntimeError('security failure: TCP listener escaped loopback')
-        env = xenv(display, auth, root)
-        openbox_pid = launch_client(['openbox', '--config-file', str(root / 'config/openbox/rc.xml')], env, logs / 'openbox-tcp-88.log')
-        desktop_pid = launch_client(['python3', str(root / 'desktop_shell.py')], env, logs / 'desktop-shell-tcp-88.log')
-        reaper_pid = launch_client([str(root / 'apps/REAPER/reaper'), str(root / 'projects/ASIO-Routing-Project/ASIO-Routing-Project.RPP')], env, logs / 'reaper-tcp-88.log', root / 'apps/REAPER')
-        deadline = time.monotonic() + 20
-        title = None
-        while time.monotonic() < deadline:
-            title = canonical_window(display, auth, root)
-            if title:
-                break
-            time.sleep(0.25)
-        if not title:
-            raise RuntimeError('TCP fallback did not reach canonical REAPER-ready state')
-        for name, pid in [('xvfb-tcp.pid', xvfb_pid), ('openbox-tcp.pid', openbox_pid), ('desktop-shell-tcp.pid', desktop_pid), ('reaper-tcp.pid', reaper_pid)]:
-            (run_root / name).write_text(str(pid) + '\n', encoding='utf-8')
-        return {
-            'ok': True,
-            'candidate': 'display-88-tcp-fallback-v1',
-            'acquire_mode': 'reconstructed-in-current-runtime-over-authenticated-loopback-tcp',
-            'display': tcp_display(display),
-            'endpoint': f'{TCP_HOST}:{tcp_port(display)}',
-            'listener_rows': rows,
-            'unix_socket': 'ABSENT',
-            'xauthority': str(auth),
-            'xauthority_mode': oct(auth.stat().st_mode & 0o777),
-            'reaper_window_title': title,
-            'hashes': {
-                'project': sha256(root / 'projects/ASIO-Routing-Project/ASIO-Routing-Project.RPP'),
-                'reaper': sha256(root / 'apps/REAPER/reaper'),
-            },
-            'pids_advisory': {'xvfb': xvfb_pid, 'openbox': openbox_pid, 'desktop_shell': desktop_pid, 'reaper': reaper_pid},
-        }
-    except Exception:
-        terminate(xvfb_pid)
-        raise
+    raise RuntimeError('activation disabled in privacy review candidate; only preflight and throwaway selftest are admitted')
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -380,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except Exception as exc:
         message = str(exc)
-        print(json.dumps({'ok': False, 'candidate': 'display-88-tcp-fallback-v1', 'error': message, 'preflight': candidate_preflight(getattr(args, 'display', DEFAULT_DISPLAY))}, indent=2, sort_keys=True), file=sys.stderr)
+        print(json.dumps({'ok': False, 'candidate': 'display-89-privacy-review-v2', 'error': message, 'preflight': candidate_preflight(getattr(args, 'display', DEFAULT_DISPLAY))}, indent=2, sort_keys=True), file=sys.stderr)
         if 'AF_INET denied' in message:
             return 74
         return 1
