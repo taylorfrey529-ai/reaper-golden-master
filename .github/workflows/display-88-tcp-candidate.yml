@@ -1,0 +1,84 @@
+name: Display 88 TCP fallback candidate
+
+on:
+  push:
+    branches:
+      - candidate/display-88-tcp-fallback
+  pull_request:
+    branches:
+      - full-os-mutable-layer
+
+permissions:
+  contents: read
+
+jobs:
+  verify-display-88-tcp-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify inherited Golden Master baseline
+        run: bash scripts/verify-baseline.sh
+
+      - name: Verify inherited full OS mutability contract
+        run: bash scripts/verify-os-mutability.sh
+
+      - name: Compile candidate controller
+        run: python3 -m py_compile recovery/workspace/reaper-display88-tcp-candidate.py
+
+      - name: Syntax check guarded wrapper
+        run: bash -n recovery/workspace/acquire-display-88-tcp-candidate.sh
+
+      - name: Verify candidate evidence contract
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('evidence/candidates/DISPLAY-88-TCP-FALLBACK-CANDIDATE.json')
+          d = json.loads(p.read_text())
+          assert d['candidate_id'] == 'display-88-tcp-fallback-v1'
+          assert d['base_commit'] == '5140c3ca15fe2c2112790996f74769a66aa0bca7'
+          assert d['candidate_endpoint'] == '127.0.0.1:6088'
+          assert d['security_controls']['ipv4_loopback_only'] is True
+          assert d['security_controls']['xauthority_required'] is True
+          assert d['security_controls']['normal_af_unix_path_replaced'] is False
+          assert d['authority_locks']['canonical_display_88_listener_activated'] is False
+          assert d['state'] == 'security-mechanism-verified-target-environment-pending'
+          PY
+
+      - name: Verify runtime tools for transport self-test
+        run: |
+          command -v Xvfb
+          command -v xauth
+          command -v xdpyinfo
+          command -v ss
+
+      - name: Run non-mutating candidate preflight
+        run: python3 recovery/workspace/reaper-display88-tcp-candidate.py preflight --display 89
+
+      - name: Prove authenticated inherited-fd loopback transport on throwaway display
+        run: |
+          python3 recovery/workspace/reaper-display88-tcp-candidate.py selftest --display 89 | tee /tmp/display89-selftest.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/display89-selftest.json'))
+          assert d['ok'] is True
+          assert d['endpoint'] == '127.0.0.1:6089'
+          assert d['authenticated_xdpyinfo'] == 'PASS'
+          assert d['unauthenticated_xdpyinfo'] == 'DENIED'
+          assert d['unix_socket'] == 'ABSENT'
+          assert d['listener_scope'] == 'loopback-ipv4-only'
+          assert d['xauthority_mode'] == '0o600'
+          assert d['listener_rows']
+          assert all('127.0.0.1:6089' in row for row in d['listener_rows'])
+          PY
+          test ! -e /tmp/.X11-unix/X89
+
+      - name: Prove candidate does not displace admitted AF_UNIX transport
+        run: |
+          set +e
+          python3 recovery/workspace/reaper-display88-tcp-candidate.py acquire-candidate --display 88 >/tmp/acquire.out 2>/tmp/acquire.err
+          rc=$?
+          set -e
+          test "$rc" -eq 1
+          grep -F 'AF_UNIX is available; use the admitted local transport' /tmp/acquire.err
