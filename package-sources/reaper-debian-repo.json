@@ -9,8 +9,11 @@
     "bound_bootstrap_commit": "57afcc6dc995aae69bec1c663a2e4885b2ddc9c0",
     "bootstrap_ci_run_id": "34293034792",
     "bootstrap_ci_conclusion": "success",
-    "bound_snapshot_commit": "fcd3b1097c67dd57b5f9437ffa1952a784b61cd3",
-    "snapshot_ci_run_id": "34294140407",
+    "previous_snapshot_commit": "fcd3b1097c67dd57b5f9437ffa1952a784b61cd3",
+    "previous_snapshot_ci_run_id": "34294140407",
+    "previous_snapshot_ci_conclusion": "success",
+    "bound_snapshot_commit": "c38254474dd09a06c316423d4f1f6f3adaf79b46",
+    "snapshot_ci_run_id": "34298118058",
     "snapshot_ci_conclusion": "success"
   },
   "consumer": {
@@ -40,13 +43,30 @@
   },
   "snapshot": {
     "state": "admitted-private-snapshot",
-    "snapshot_id": "2026-09-09.1",
-    "snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56",
-    "package_name": "reaper-workspace-status",
-    "package_version": "1.0.0-1",
-    "package_architecture": "all",
-    "package_sha256": "a2f5fa8679720368b30377d10a541f8dd95cddfa9d8e5b39e6b433f0e346fe8b",
-    "package_payload_sha256": "765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed"
+    "snapshot_id": "2026-09-09.2",
+    "previous_snapshot_id": "2026-09-09.1",
+    "previous_snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56",
+    "snapshot_manifest_sha256": "9c14b692ade5ea52a3a8e0460e584cc363ae1cbd864cb6439f81b8753cf6f647",
+    "packages": [
+      {
+        "name": "reaper-workspace-status",
+        "version": "1.0.0-1",
+        "architecture": "all",
+        "deb_sha256": "a2f5fa8679720368b30377d10a541f8dd95cddfa9d8e5b39e6b433f0e346fe8b",
+        "installed": true
+      },
+      {
+        "name": "reaperctl",
+        "version": "0.2.0-1",
+        "architecture": "all",
+        "deb_sha256": "5fe9b91748c600e85623d8341a8ad619e62f7f80c5c4bfce40d3ac39e71361d9",
+        "source_repository": "taylorfrey529-ai/reaper-golden-master",
+        "source_commit": "0e657d7f76665a1ea9b61f7426f8c82986d83c43",
+        "build_commit": "466bef73a53f89e08fa8d07d9f166203d101c62f",
+        "build_run_id": "34296813002",
+        "installed": false
+      }
+    ]
   },
   "trust": {
     "repository_signing_required": true,
@@ -66,35 +86,26 @@
   },
   "live_evidence": {
     "local_repository_present": true,
-    "trust_root_admission_package_inventory_sha256": "1de03bf4d89b6b2c5d26def2f05ade72cb704a7bf81c887f87d4201d13aac018",
-    "package_pre_inventory_sha256": "c82d5c8c3a85896e1f0fabac3adc5ec5d54a54fee4703ca73a5e6867d302f3a3",
-    "package_post_inventory_sha256": "2b265ff8b859e8413e82c37eda59c315621833713c3cae46635726a608ba228a",
-    "package_rollback_inventory_sha256": "c82d5c8c3a85896e1f0fabac3adc5ec5d54a54fee4703ca73a5e6867d302f3a3",
+    "local_repository_snapshot_id": "2026-09-09.1",
+    "local_repository_snapshot_manifest_sha256": "51be57e06807e179f13da827fd0ca91041d384960866f6180682ff51faf19d56",
+    "package_inventory_sha256": "2b265ff8b859e8413e82c37eda59c315621833713c3cae46635726a608ba228a",
     "listener_inventory_sha256": "69b15352b7611ce5e030771733d63726b6392b86aa11d746b87531315ae64d0a",
     "project_sha256": "2ea85263d6dc125bf7739264956a1ee1a8074c2b42f69b606b5e9d8b7e9771f1",
     "reaper_sha256": "cee99a74fdd9fc87974c96ea334a50afff4ca8d3121591aed218057bb38185e4",
     "workspace_status_usr_local_sha256": "765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed",
     "workspace_status_usr_bin_sha256": "765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed",
-    "package_installed": true,
-    "installed_package_name": "reaper-workspace-status",
-    "installed_package_version": "1.0.0-1",
-    "installed_package_architecture": "all",
-    "apt_update_output_sha256": "c6f79a5c440a2bfc4428f73b76594d735a7e5614653b94a73d72d1cfff90b00b",
-    "apt_install_output_sha256": "1a9e340f08b2249ae70494b827481e1389c32f6780d91412fdfa0ba082490eea",
-    "apt_purge_rehearsal_output_sha256": "9e1ae44dedf929ddf1d2f59209b19037b6f1e1281d1bf0e3412d613de6f57e41",
-    "guarded_rollback_output_sha256": "b9f97c8daeb63f463b07f1bcacc06b0d1777fdc493c216c369b9eced02076635",
-    "guarded_reinstall_output_sha256": "312e147dd1eaffeee2f7e70b533ebbb4b624b192ef631ebce06638af5b86eec0",
-    "install_script_sha256": "6a203406c79076b398e56157dd91293e43b1badb8747b9e37b17d376f11263d7",
-    "rollback_script_sha256": "46b33820bf5481a594159b2da48a20851f763293bb0a1579cac1c8f32c4a9c8f"
+    "reaper_workspace_status_installed": true,
+    "reaperctl_installed": false
   },
   "admission": {
-    "state": "signed-package-installed",
+    "state": "signed-snapshot-bound-pending-package-install",
     "repository_snapshot_verified": true,
     "consumer_trust_root_admitted": true,
     "apt_source_activation_admitted": true,
-    "package_install_admitted": true,
-    "package_install_verified": true,
-    "rollback_rehearsed": true,
-    "pending_gate": "next-signed-package-or-os-transaction"
+    "snapshot_sync_pending": true,
+    "package_install_admitted": false,
+    "package_install_verified": false,
+    "rollback_rehearsed": false,
+    "pending_gate": "sync-snapshot-2026-09-09.2-and-install-reaperctl-0.2.0-1"
   }
 }
