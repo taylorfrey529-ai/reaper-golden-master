@@ -1,0 +1,100 @@
+{
+  "affected_packages": [
+    {
+      "after_version": "1.0.0-1",
+      "architecture": "all",
+      "before_version": null,
+      "classification": "mutable",
+      "name": "reaper-workspace-status"
+    }
+  ],
+  "affected_paths": [],
+  "branch": "full-os-mutable-layer",
+  "classification": "mutable",
+  "network_listeners": {
+    "after": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "before": [
+      "tcp LISTEN 0      0        0.0.0.0:1384  0.0.0.0:*",
+      "tcp LISTEN 0      0        0.0.0.0:8080  0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:36109 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:37363 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:41575 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:42885 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:44275 0.0.0.0:*",
+      "tcp LISTEN 0      0      127.0.0.1:46427 0.0.0.0:*"
+    ],
+    "new_listeners": []
+  },
+  "operation": "install-signed-reaper-workspace-status-package",
+  "package_transaction_log": {
+    "apt_install": {
+      "path": "/mnt/data/reaper-apt-package-transaction/apt-install.log",
+      "sha256": "1a9e340f08b2249ae70494b827481e1389c32f6780d91412fdfa0ba082490eea"
+    },
+    "apt_purge_rehearsal": {
+      "path": "/mnt/data/reaper-apt-package-transaction/apt-purge.log",
+      "sha256": "9e1ae44dedf929ddf1d2f59209b19037b6f1e1281d1bf0e3412d613de6f57e41"
+    },
+    "apt_reinstall": {
+      "path": "/mnt/data/reaper-apt-package-transaction/apt-reinstall.log",
+      "sha256": "1a9e340f08b2249ae70494b827481e1389c32f6780d91412fdfa0ba082490eea"
+    },
+    "apt_update_local": {
+      "path": "/mnt/data/reaper-apt-package-transaction/apt-update-local.log",
+      "sha256": "c6f79a5c440a2bfc4428f73b76594d735a7e5614653b94a73d72d1cfff90b00b"
+    },
+    "guarded_reinstall": {
+      "path": "/mnt/data/reaper-apt-package-transaction/install-script.log",
+      "sha256": "312e147dd1eaffeee2f7e70b533ebbb4b624b192ef631ebce06638af5b86eec0"
+    },
+    "guarded_rollback": {
+      "path": "/mnt/data/reaper-apt-package-transaction/rollback-script.log",
+      "sha256": "b9f97c8daeb63f463b07f1bcacc06b0d1777fdc493c216c369b9eced02076635"
+    }
+  },
+  "policy_sha256": "6ed93cecc10587b00791d1cff2139022497c34d32d6ad0dc02a9441c26864003",
+  "post_state": {
+    "notes": "reaper-workspace-status 1.0.0-1 all installed; final inventory differs from pre-state by exactly that one package. /usr/bin and /usr/local status utilities both hash 765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed.",
+    "package_inventory_path": "/mnt/data/reaper-apt-package-transaction/packages-script-final.tsv",
+    "package_inventory_sha256": "2b265ff8b859e8413e82c37eda59c315621833713c3cae46635726a608ba228a"
+  },
+  "pre_state": {
+    "notes": "reaper-workspace-status absent; /usr/bin/reaper-workspace-status absent; existing unowned /usr/local/bin/reaper-workspace-status hash 765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed. Inventory serialization: sorted dpkg-query binary package, version, architecture TSV.",
+    "package_inventory_path": "/mnt/data/reaper-apt-package-transaction/packages-pre.tsv",
+    "package_inventory_sha256": "c82d5c8c3a85896e1f0fabac3adc5ec5d54a54fee4703ca73a5e6867d302f3a3"
+  },
+  "requested_change": "Install reaper-workspace-status 1.0.0-1 through the admitted signed private local APT repository, retain the exact signed package as final state, and prove package-only purge rollback plus identical reinstall without changing the admitted trust root or any protected REAPER authority.",
+  "rollback": {
+    "artifacts": [
+      "/mnt/data/reaper-apt-package-transaction/rollback-reaper-workspace-status-package.sh",
+      "/mnt/data/reaper-apt-package-transaction/install-reaper-workspace-status-package.sh",
+      "/mnt/data/reaper-apt-repository/SNAPSHOT.sha256"
+    ],
+    "available": true,
+    "instructions": "Run rollback-reaper-workspace-status-package.sh. It requires the exact admitted key/source and exact installed package metadata/payload and refuses on drift, purges only reaper-workspace-status, and preserves the admitted repository trust root. The exact guarded installer was then exercised to restore 1.0.0-1."
+  },
+  "schema_version": 1,
+  "services": {
+    "added": [],
+    "disabled": [],
+    "enabled": [],
+    "removed": [],
+    "started": [],
+    "stopped": []
+  },
+  "verification": {
+    "golden_master_unchanged": true,
+    "notes": "Signed snapshot manifest and InRelease verified with fingerprint EAE567EB437C007F46A58BDCA76356FF985B3F3B. Package .deb SHA-256 a2f5fa8679720368b30377d10a541f8dd95cddfa9d8e5b39e6b433f0e346fe8b. APT local-source-only install added exactly one package and no dependencies. Package payload /usr/bin/reaper-workspace-status matches approved source hash 765bac01283962461cded9984a1bb3147df908a6e1d3302579e003153af791ed. Purge returned package inventory exactly to pre-state; guarded reinstall restored exact final inventory. Listener inventory stayed 69b15352b7611ce5e030771733d63726b6392b86aa11d746b87531315ae64d0a. Project, REAPER binary, /usr/local utility, trust key, APT source, and signed snapshot hashes remained unchanged; Xvfb :88, REAPER and Virtual Apollo remained active.",
+    "result": "PASS",
+    "security_invariants_preserved": true
+  }
+}
