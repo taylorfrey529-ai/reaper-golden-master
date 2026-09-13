@@ -1,0 +1,52 @@
+name: Build portable Wine 11.17 WoW64 for REAPER workstation
+
+on:
+  push:
+    branches:
+      - artifact/wine-11.17-wow64
+    paths:
+      - .github/workflows/wine-wow64-portable.yml
+      - tools/wine-portable/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact artifact branch state
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Build and verify portable Wine package
+        run: bash tools/wine-portable/build-wine-portable.sh "$RUNNER_TEMP/wine-build" "$GITHUB_WORKSPACE/dist"
+
+      - name: Smoke-test 32-bit Windows layer in an isolated prefix
+        env:
+          WINEDEBUG: -all
+          WINEDLLOVERRIDES: mscoree,mshtml=
+          WINEPREFIX: ${{ runner.temp }}/wine-smoke-prefix
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes xvfb
+          package_root="$GITHUB_WORKSPACE/dist-smoke"
+          mkdir -p "$package_root"
+          tar -xJf "$GITHUB_WORKSPACE/dist/wine-11.17-amd64-wow64-reaper-portable.tar.xz" -C "$package_root"
+          runtime="$package_root/wine-11.17-amd64-wow64-reaper-portable"
+          xvfb-run -a "$runtime/bin/wine-portable" wineboot --init
+          xvfb-run -a "$runtime/bin/wine-portable" 'C:\\windows\\syswow64\\cmd.exe' /c ver
+          "$runtime/bin/wineserver-portable" --wait
+
+      - name: Upload deterministic runtime
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wine-11.17-amd64-wow64-reaper-portable
+          path: |
+            dist/wine-11.17-amd64-wow64-reaper-portable.tar.xz
+            dist/wine-11.17-amd64-wow64-reaper-portable.tar.xz.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
