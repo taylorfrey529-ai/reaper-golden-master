@@ -1,0 +1,35 @@
+name: Package X11 evidence support for portable workstation validation
+
+on:
+  push:
+    branches:
+      - artifact/wine-11.17-wow64
+    paths:
+      - .github/workflows/x11-evidence-support.yml
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download exact runner-compatible X11 support packages
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/x11-support"
+          cd "$GITHUB_WORKSPACE/x11-support"
+          sudo apt-get update
+          apt-get download libxfont2 x11-utils xauth
+          sha256sum ./*.deb > SHA256SUMS
+          dpkg-deb --info ./*.deb >/dev/null
+
+      - name: Upload checked X11 support packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: x11-evidence-support-ubuntu-24.04
+          path: x11-support/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
