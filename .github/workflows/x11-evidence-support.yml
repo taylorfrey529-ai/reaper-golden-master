@@ -20,7 +20,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/x11-support"
           cd "$GITHUB_WORKSPACE/x11-support"
           sudo apt-get update
-          apt-get download libxfont2 x11-utils xauth
+          apt-get download libxfont2 libxmuu1 x11-utils x11-xkb-utils xauth xkb-data
           sha256sum ./*.deb > SHA256SUMS
           for package in ./*.deb; do
             dpkg-deb --info "$package" >/dev/null
