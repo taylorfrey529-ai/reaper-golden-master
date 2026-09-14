@@ -1,0 +1,55 @@
+name: scratch-trinity-trixie-boost
+
+on:
+  push:
+    branches:
+      - scratch/trinity-trixie-boost-20260914
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    timeout-minutes: 15
+    steps:
+      - name: Install exact Trixie Boost development components
+        run: |
+          set -eux
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates tar gzip coreutils \
+            libboost1.83-dev \
+            libboost-filesystem1.83-dev \
+            libboost-program-options1.83-dev \
+            libboost-regex1.83-dev \
+            libboost-locale1.83-dev
+
+      - name: Assemble workspace overlay
+        run: |
+          set -eux
+          out="$GITHUB_WORKSPACE/trinity-tixie-boost-overlay"
+          mkdir -p "$out/usr/include" "$out/usr/lib/x86_64-linux-gnu"
+          cp -a /usr/include/boost "$out/usr/include/"
+          for f in /usr/lib/x86_64-linux-gnu/libboost_*.so*; do cp -a "$f" "$out/usr/lib/x86_64-linux-gnu/"; done
+          if [ -d /usr/lib/x86_64-linux-gnu/cmake ]; then
+            mkdir -p "$out/usr/lib/x86_64-linux-gnu/cmake"
+            for d in /usr/lib/x86_64-linux-gnu/cmake/Boost-* /usr/lib/x86_64-linux-gnu/cmake/boost_*; do
+              [ -e "$d" ] && cp -a "$d" "$out/usr/lib/x86_64-linux-gnu/cmake/"
+            done
+          fi
+          dpkg-query -W 'libboost*' | sort > "$GITHUB_WORKSPACE/boost-packages.txt"
+          tar -C "$GITHUB_WORKSPACE" -czf "$GITHUB_WORKSPACE/trinity-tixie-boost-overlay.tar.gz" trinity-tixie-boost-overlay
+          sha256sum "$GITHUB_WORKSPACE/trinity-tixie-boost-overlay.tar.gz" > "$GITHUB_WORKSPACE/trinity-tixie-boost-overlay.tar.gz.sha256"
+
+      - name: Upload overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: trinity-tixie-boost-overlay
+          path: |
+            trinity-tixie-boost-overlay.tar.gz
+            trinity-tixie-boost-overlay.tar.gz.sha256
+            boost-packages.txt
+          if-no-files-found: error
+          retention-days: 1
