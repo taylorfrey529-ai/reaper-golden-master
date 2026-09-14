@@ -1,0 +1,56 @@
+name: scratch-qemu-portable
+
+on:
+  push:
+    branches:
+      - scratch/qemu-portable-20260914
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install QEMU x86 runtime
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-x86 qemu-system-common qemu-system-data seabios
+
+      - name: Assemble portable runtime
+        run: |
+          set -euxo pipefail
+          root="$GITHUB_WORKSPACE/qemu-portable/root"
+          mkdir -p "$root/usr/bin" "$root/usr/lib/x86_64-linux-gnu" "$root/usr/share"
+          cp -a /usr/bin/qemu-system-x86_64 "$root/usr/bin/"
+          if [ -d /usr/lib/x86_64-linux-gnu/qemu ]; then
+            cp -a /usr/lib/x86_64-linux-gnu/qemu "$root/usr/lib/x86_64-linux-gnu/"
+          fi
+          if [ -d /usr/share/qemu ]; then
+            cp -a /usr/share/qemu "$root/usr/share/"
+          fi
+          if [ -d /usr/share/seabios ]; then
+            cp -a /usr/share/seabios "$root/usr/share/"
+          fi
+          ldd /usr/bin/qemu-system-x86_64 | awk '/=> \/|^\// {for (i=1;i<=NF;i++) if ($i ~ /^\//) print $i}' | sort -u > "$GITHUB_WORKSPACE/qemu-libs.txt"
+          while IFS= read -r lib; do
+            [ -f "$lib" ] || continue
+            cp -L "$lib" "$root/usr/lib/x86_64-linux-gnu/"
+          done < "$GITHUB_WORKSPACE/qemu-libs.txt"
+          /usr/bin/qemu-system-x86_64 --version | tee "$GITHUB_WORKSPACE/qemu-version.txt"
+          tar -C "$GITHUB_WORKSPACE/qemu-portable" -czf "$GITHUB_WORKSPACE/qemu-portable-linux-x86_64.tar.gz" root
+          sha256sum "$GITHUB_WORKSPACE/qemu-portable-linux-x86_64.tar.gz" | tee "$GITHUB_WORKSPACE/qemu-portable-linux-x86_64.tar.gz.sha256"
+
+      - name: Upload portable runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-portable-linux-x86_64
+          path: |
+            qemu-portable-linux-x86_64.tar.gz
+            qemu-portable-linux-x86_64.tar.gz.sha256
+            qemu-version.txt
+            qemu-libs.txt
+          if-no-files-found: error
+          retention-days: 1
